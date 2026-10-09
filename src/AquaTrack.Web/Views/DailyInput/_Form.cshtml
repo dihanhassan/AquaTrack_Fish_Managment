@@ -1,0 +1,360 @@
+@model DailyInputViewModel
+@*
+    One day of pond activity. Every section is optional. The pond and date pickers re-fetch this
+    partial so the context panel and batch list always match what is selected.
+*@
+<form hx-post="@Url.Action("Save")" hx-target="#aq-daily-form" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="aq-card mb-3">
+        <div class="aq-filters">
+            <div>
+                <label asp-for="PondId" class="form-label"></label>
+                <select asp-for="PondId" class="form-select form-select-sm"
+                        hx-get="@Url.Action("Form")"
+                        hx-target="#aq-daily-form"
+                        hx-swap="innerHTML"
+                        hx-include="[name=LogDate]">
+                    @foreach (var pond in Model.Ponds)
+                    {
+                        <option value="@pond.Id" selected="@(Model.PondId == pond.Id)">@pond.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label asp-for="LogDate" class="form-label"></label>
+                <input asp-for="LogDate" class="form-control form-control-sm" type="date"
+                       max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")"
+                       hx-get="@Url.Action("Form")"
+                       hx-target="#aq-daily-form"
+                       hx-swap="innerHTML"
+                       hx-include="[name=PondId]" />
+            </div>
+
+            @if (Model.Batches.Count > 0)
+            {
+                <div style="min-width:260px">
+                    <label asp-for="FishStockId" class="form-label"></label>
+                    <select asp-for="FishStockId" class="form-select form-select-sm">
+                        <option value="">Choose a batch</option>
+                        @foreach (var batch in Model.Batches)
+                        {
+                            <option value="@batch.Id" selected="@(Model.FishStockId == batch.Id)">@batch.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div>
+                <label asp-for="Weather" class="form-label"></label>
+                <input asp-for="Weather" class="form-control form-control-sm" placeholder="Sunny, warm" />
+            </div>
+        </div>
+
+        @if (Model.AlreadyRecorded is { HasActivity: true } recorded)
+        {
+            <div class="aq-card-body border-top py-2">
+                <div class="d-flex flex-wrap gap-3 small text-muted-2">
+                    <span class="fw-semibold text-dark">Already recorded today:</span>
+                    @if (recorded.FeedKg > 0)
+                    {
+                        <span><i class="bi bi-basket me-1"></i>@recorded.FeedKg.ToString("N2") kg feed</span>
+                    }
+                    @if (recorded.MedicineCost > 0)
+                    {
+                        <span><i class="bi bi-capsule me-1"></i>@recorded.MedicineCost.ToString("N2") medicine</span>
+                    }
+                    @if (recorded.Mortality > 0)
+                    {
+                        <span><i class="bi bi-exclamation-triangle me-1"></i>@recorded.Mortality died</span>
+                    }
+                    @if (recorded.Sales > 0)
+                    {
+                        <span><i class="bi bi-receipt me-1"></i>@recorded.Sales.ToString("N2") sales</span>
+                    }
+                    @if (recorded.Expense > 0)
+                    {
+                        <span><i class="bi bi-wallet2 me-1"></i>@recorded.Expense.ToString("N2") expense</span>
+                    }
+                    <span class="text-faint">Saving again adds to the day rather than replacing it.</span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <partial name="_ValidationSummary" />
+
+    @if (Model.IsLocked)
+    {
+        <div class="alert alert-warning py-2 px-3 small">
+            <i class="bi bi-lock-fill me-1"></i>This day has been locked and can no longer be edited.
+        </div>
+    }
+
+    <div class="row g-3">
+        <!-- Feeding -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-basket me-2 text-muted-2"></i>Feeding</h2>
+                    @if (!string.IsNullOrWhiteSpace(Model.FeedAdvice))
+                    {
+                        <span class="aq-badge aq-badge-info ms-auto" title="AI recommendation">
+                            <i class="bi bi-robot me-1"></i>@Model.FeedAdvice
+                        </span>
+                    }
+                </div>
+                <div class="aq-card-body">
+                    @for (var i = 0; i < Model.FeedLines.Count; i++)
+                    {
+                        var line = Model.FeedLines[i];
+                        <div class="row g-2 mb-2">
+                            <div class="col-7">
+                                <select name="FeedLines[@i].FeedItemId" class="form-select form-select-sm">
+                                    <option value="0">Choose feed</option>
+                                    @foreach (var item in Model.FeedItems)
+                                    {
+                                        <option value="@item.Id" selected="@(line.FeedItemId == item.Id)">@item.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-5">
+                                <div class="input-group input-group-sm">
+                                    <input name="FeedLines[@i].Quantity" class="form-control" type="number"
+                                           step="0.01" min="0" value="@(line.Quantity > 0 ? line.Quantity.ToString("0.##") : "")"
+                                           placeholder="Quantity" />
+                                    <span class="input-group-text">kg</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="form-text">Leave a row blank to skip it.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicine -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-capsule me-2 text-muted-2"></i>Medicine</h2>
+                </div>
+                <div class="aq-card-body">
+                    @for (var i = 0; i < Model.MedicineLines.Count; i++)
+                    {
+                        var line = Model.MedicineLines[i];
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <select name="MedicineLines[@i].MedicineId" class="form-select form-select-sm">
+                                    <option value="0">Choose medicine</option>
+                                    @foreach (var medicine in Model.Medicines)
+                                    {
+                                        <option value="@medicine.Id" selected="@(line.MedicineId == medicine.Id)">@medicine.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-3">
+                                <input name="MedicineLines[@i].Quantity" class="form-control form-control-sm"
+                                       type="number" step="0.01" min="0"
+                                       value="@(line.Quantity > 0 ? line.Quantity.ToString("0.##") : "")"
+                                       placeholder="Qty" />
+                            </div>
+                            <div class="col-3">
+                                <input name="MedicineLines[@i].Purpose" class="form-control form-control-sm"
+                                       value="@line.Purpose" placeholder="Purpose" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Mortality and growth -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi bi-heart-pulse me-2 text-muted-2"></i>Mortality &amp; growth
+                    </h2>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label asp-for="MortalityCount" class="form-label"></label>
+                            <input asp-for="MortalityCount" class="form-control form-control-sm"
+                                   type="number" min="0" placeholder="0" />
+                            <span asp-validation-for="MortalityCount" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-7">
+                            <label asp-for="MortalityCause" class="form-label"></label>
+                            <select asp-for="MortalityCause" class="form-select form-select-sm"
+                                    asp-items="Html.GetEnumSelectList<MortalityCause>()"></select>
+                        </div>
+
+                        <div class="col-md-5">
+                            <label asp-for="SampleAvgWeightGram" class="form-label"></label>
+                            <div class="input-group input-group-sm">
+                                <input asp-for="SampleAvgWeightGram" class="form-control"
+                                       type="number" step="0.1" min="0" placeholder="0" />
+                                <span class="input-group-text">g</span>
+                            </div>
+                            <span asp-validation-for="SampleAvgWeightGram" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-7">
+                            <label asp-for="SampleSize" class="form-label"></label>
+                            <input asp-for="SampleSize" class="form-control form-control-sm"
+                                   type="number" min="1" placeholder="10" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sale -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-receipt me-2 text-muted-2"></i>Fish sale</h2>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="SaleFishTypeId" class="form-label"></label>
+                            <select asp-for="SaleFishTypeId" class="form-select form-select-sm">
+                                <option value="">Not selling today</option>
+                                @foreach (var species in Model.Species)
+                                {
+                                    <option value="@species.Id" selected="@(Model.SaleFishTypeId == species.Id)">@species.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SaleCustomerId" class="form-label"></label>
+                            <select asp-for="SaleCustomerId" class="form-select form-select-sm">
+                                <option value="">Walk-in</option>
+                                @foreach (var customer in Model.Customers)
+                                {
+                                    <option value="@customer.Id" selected="@(Model.SaleCustomerId == customer.Id)">@customer.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="SaleQuantityKg" class="form-label"></label>
+                            <input asp-for="SaleQuantityKg" class="form-control form-control-sm"
+                                   type="number" step="0.01" min="0" data-sale-qty />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="SaleUnitPrice" class="form-label"></label>
+                            <input asp-for="SaleUnitPrice" class="form-control form-control-sm"
+                                   type="number" step="0.01" min="0" data-sale-price />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Total</label>
+                            <div class="form-control form-control-sm bg-light num fw-semibold" data-sale-total>0.00</div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="SalePaymentMethod" class="form-label"></label>
+                            <select asp-for="SalePaymentMethod" class="form-select form-select-sm"
+                                    asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Income and expense -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-arrow-down-circle me-2 text-muted-2"></i>Other income</h2>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label asp-for="OtherIncomeAmount" class="form-label"></label>
+                            <input asp-for="OtherIncomeAmount" class="form-control form-control-sm"
+                                   type="number" step="0.01" min="0" />
+                        </div>
+                        <div class="col-md-7">
+                            <label asp-for="OtherIncomeSource" class="form-label"></label>
+                            <input asp-for="OtherIncomeSource" class="form-control form-control-sm"
+                                   placeholder="Pond lease, scrap sale" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-wallet2 me-2 text-muted-2"></i>Expense</h2>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="ExpenseAmount" class="form-label"></label>
+                            <input asp-for="ExpenseAmount" class="form-control form-control-sm"
+                                   type="number" step="0.01" min="0" />
+                        </div>
+                        <div class="col-md-8">
+                            <label asp-for="ExpenseCategoryId" class="form-label"></label>
+                            <select asp-for="ExpenseCategoryId" class="form-select form-select-sm">
+                                <option value="">Other</option>
+                                @foreach (var category in Model.ExpenseCategories)
+                                {
+                                    <option value="@category.Id" selected="@(Model.ExpenseCategoryId == category.Id)">@category.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="ExpenseDescription" class="form-label"></label>
+                            <input asp-for="ExpenseDescription" class="form-control form-control-sm"
+                                   placeholder="Labour, transport, repair" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observations -->
+        <div class="col-12">
+            <div class="aq-card">
+                <div class="aq-card-body">
+                    <label asp-for="Observations" class="form-label"></label>
+                    <textarea asp-for="Observations" class="form-control" rows="2"
+                              placeholder="Anything worth remembering about the pond today"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="submit" class="btn btn-primary" disabled="@Model.IsLocked">
+            <span class="aq-busy spinner-border spinner-border-sm me-1"></span>
+            <i class="bi bi-check2 me-1"></i>Save the day
+        </button>
+    </div>
+</form>
+
+<script>
+    // Live sale total, so the user can check the figure before saving.
+    (function () {
+        var form = document.querySelector('#aq-daily-form form');
+        if (!form) return;
+
+        var qty = form.querySelector('[data-sale-qty]');
+        var price = form.querySelector('[data-sale-price]');
+        var total = form.querySelector('[data-sale-total]');
+        if (!qty || !price || !total) return;
+
+        function recalc() {
+            total.textContent = ((parseFloat(qty.value) || 0) * (parseFloat(price.value) || 0)).toFixed(2);
+        }
+
+        qty.addEventListener('input', recalc);
+        price.addEventListener('input', recalc);
+        recalc();
+    })();
+</script>

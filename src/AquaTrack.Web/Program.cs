@@ -3,6 +3,7 @@ using AquaTrack.Application.Common.Interfaces;
 using AquaTrack.Infrastructure;
 using AquaTrack.Infrastructure.Identity;
 using AquaTrack.Infrastructure.Persistence.Seed;
+using AquaTrack.Web.Controllers;
 using AquaTrack.Web.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Razor;
 using QuestPDF.Infrastructure;
@@ -18,6 +19,7 @@ builder.Services.AddAquaTrackInfrastructure(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IFeedAdvisorAccessor, FeedAdvisorAccessor>();
 
 builder.Services.AddControllersWithViews();
 
