@@ -1,0 +1,86 @@
+@model PartyListViewModel<Customer>
+@{
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-customer-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-customer-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search) && !Model.OnlyWithDues
+            ? new EmptyStateViewModel {
+                Icon = "bi-people",
+                Title = "No customers yet",
+                Message = "Add the traders, arats and retailers you sell fish to.",
+                ActionLabel = "Add customer",
+                ActionUrl = Url.Action("Form") }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Customer", "name", "start")" />
+                        <th>Phone</th>
+                        <th>Address</th>
+                        <partial name="_SortHeader" model="@header("Due", "due", "end")" />
+                        <th class="text-center">Status</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var customer in Model.Page.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@customer.Name</td>
+                            <td>@(customer.Phone ?? "-")</td>
+                            <td class="text-muted-2">@(customer.Address ?? "-")</td>
+                            <td class="num @(customer.ReceivableBalance > 0 ? "text-danger fw-semibold" : "")">
+                                @customer.ReceivableBalance.ToString("N2")
+                            </td>
+                            <td class="text-center">
+                                <span class="aq-badge aq-badge-@(customer.IsActive ? "success" : "neutral")">
+                                    @(customer.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="aq-row-actions">
+                                <button type="button" class="btn btn-icon" title="Edit"
+                                        hx-get="@Url.Action("Form", new { id = customer.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-icon danger" title="Delete"
+                                        hx-get="@Url.Action("ConfirmDelete", new { id = customer.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3">Total outstanding</td>
+                        <td class="num">@Model.Page.Items.Sum(c => c.ReceivableBalance).ToString("N2")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-customer-table", routeValues)" />
+    }
+</div>

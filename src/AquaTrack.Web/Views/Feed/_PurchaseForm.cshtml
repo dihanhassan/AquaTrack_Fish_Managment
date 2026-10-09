@@ -1,0 +1,109 @@
+@model FeedPurchaseFormViewModel
+<partial name="_ModalHeader" model="@("Record feed purchase")" />
+
+<form hx-post="@Url.Action("SavePurchase")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <p class="text-muted-2 small">
+            This raises stock, posts the expense, and pays it out of the cash book. Anything unpaid
+            becomes a balance owed to the supplier.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label asp-for="FeedItemId" class="form-label">Feed item <span class="req">*</span></label>
+                <select asp-for="FeedItemId" class="form-select">
+                    <option value="0">Choose a feed item</option>
+                    @foreach (var item in Model.FeedItems)
+                    {
+                        <option value="@item.Id" selected="@(Model.FeedItemId == item.Id)">@item.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="FeedItemId" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="PurchaseDate" class="form-label"></label>
+                <input asp-for="PurchaseDate" class="form-control" type="date" />
+            </div>
+
+            <div class="col-md-7">
+                <label asp-for="SupplierId" class="form-label"></label>
+                <select asp-for="SupplierId" class="form-select">
+                    <option value="">Walk-in / not recorded</option>
+                    @foreach (var supplier in Model.Suppliers)
+                    {
+                        <option value="@supplier.Id" selected="@(Model.SupplierId == supplier.Id)">@supplier.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="InvoiceNo" class="form-label"></label>
+                <input asp-for="InvoiceNo" class="form-control" />
+            </div>
+
+            <div class="col-12"><div class="aq-form-section">Quantity and payment</div></div>
+
+            <div class="col-md-4">
+                <label asp-for="Quantity" class="form-label">Quantity <span class="req">*</span></label>
+                <input asp-for="Quantity" class="form-control" type="number" step="0.01" min="0.001" data-qty />
+                <span asp-validation-for="Quantity" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="UnitPrice" class="form-label">Unit price <span class="req">*</span></label>
+                <input asp-for="UnitPrice" class="form-control" type="number" step="0.01" min="0.01" data-price />
+                <span asp-validation-for="UnitPrice" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Total</label>
+                <div class="form-control bg-light num fw-semibold" data-line-total>0.00</div>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="PaymentMethod" class="form-label"></label>
+                <select asp-for="PaymentMethod" class="form-select"
+                        asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="PaidAmount" class="form-label">Paid now</label>
+                <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" min="0" />
+                <div class="form-text">Leave below the total to record a supplier due.</div>
+                <span asp-validation-for="PaidAmount" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record purchase")" />
+</form>
+
+<script>
+    // Keeps the total in step with quantity and price without a round trip.
+    (function () {
+        var form = document.querySelector('#aq-modal-content form');
+        if (!form) return;
+
+        var qty = form.querySelector('[data-qty]');
+        var price = form.querySelector('[data-price]');
+        var total = form.querySelector('[data-line-total]');
+        var paid = form.querySelector('[name="PaidAmount"]');
+        var paidTouched = false;
+
+        function recalc() {
+            var value = (parseFloat(qty.value) || 0) * (parseFloat(price.value) || 0);
+            total.textContent = value.toFixed(2);
+            if (!paidTouched) paid.value = value.toFixed(2);
+        }
+
+        qty.addEventListener('input', recalc);
+        price.addEventListener('input', recalc);
+        paid.addEventListener('input', function () { paidTouched = true; });
+        recalc();
+    })();
+</script>

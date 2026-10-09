@@ -1,0 +1,98 @@
+@model FishTypeListViewModel
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.Query.ToRouteValues();
+}
+<div id="aq-species-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search)
+            ? new EmptyStateViewModel {
+                Icon = "bi-tags",
+                Title = "No species yet",
+                Message = "Add the fish you culture so batches and feed advice can reference them.",
+                ActionLabel = canManage ? "Add species" : null,
+                ActionUrl = canManage ? Url.Action("Form") : null }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <th>Species</th>
+                        <th>Scientific name</th>
+                        <th class="text-end">Harvest weight</th>
+                        <th class="text-end">Grow-out</th>
+                        <th class="text-end">Daily gain</th>
+                        <th class="text-end">Feed rate</th>
+                        <th class="text-end">Active batches</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var species in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>
+                                <span class="fw-semibold">@species.Name</span>
+                                @if (!string.IsNullOrWhiteSpace(species.LocalName))
+                                {
+                                    <div class="text-faint" style="font-size:.78rem">@species.LocalName</div>
+                                }
+                            </td>
+                            <td class="text-muted-2 fst-italic">@(species.ScientificName ?? "-")</td>
+                            <td class="num">
+                                @(species.TargetWeightGram.HasValue
+                                    ? species.TargetWeightGram.Value.ToString("N0") + " g"
+                                    : "-")
+                            </td>
+                            <td class="num">
+                                @(species.GrowOutDays.HasValue ? species.GrowOutDays.Value + " d" : "-")
+                            </td>
+                            <td class="num text-muted-2">
+                                @(species.ExpectedDailyGainGram.HasValue
+                                    ? species.ExpectedDailyGainGram.Value.ToString("N2") + " g/d"
+                                    : "-")
+                            </td>
+                            <td class="num">@species.DefaultFeedRatePercent.ToString("N1")%</td>
+                            <td class="num">
+                                @if (species.ActiveBatches > 0)
+                                {
+                                    <span class="aq-badge aq-badge-success">@species.ActiveBatches</span>
+                                }
+                                else
+                                {
+                                    <span class="text-faint">0</span>
+                                }
+                            </td>
+                            <td class="aq-row-actions">
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = species.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = species.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-species-table", routeValues)" />
+    }
+</div>

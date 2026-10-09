@@ -39,7 +39,8 @@ public class FishStockConfiguration : IEntityTypeConfiguration<FishStock>
         b.Property(s => s.Notes).HasMaxLength(1000);
         b.Ignore(s => s.TotalStockingCost);
         b.Ignore(s => s.BiomassKg);
-        b.Ignore(s => s.TotalMortality);
+        b.Ignore(s => s.MortalityPercent);
+        b.Ignore(s => s.SurvivalPercent);
 
         b.HasOne(s => s.Pond).WithMany(p => p.FishStocks).HasForeignKey(s => s.PondId);
         b.HasOne(s => s.FishType).WithMany(f => f.FishStocks).HasForeignKey(s => s.FishTypeId);

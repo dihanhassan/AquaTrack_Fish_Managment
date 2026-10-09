@@ -1,0 +1,53 @@
+@model SupplierFormViewModel
+<partial name="_ModalHeader" model="@(Model.IsEdit ? "Edit supplier" : "Add supplier")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label asp-for="Name" class="form-label">Supplier name <span class="req">*</span></label>
+                <input asp-for="Name" class="form-control" placeholder="Mega Feed Mills Ltd." autofocus />
+                <span asp-validation-for="Name" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="ContactPerson" class="form-label"></label>
+                <input asp-for="ContactPerson" class="form-control" />
+            </div>
+
+            <div class="col-md-5">
+                <label asp-for="Phone" class="form-label"></label>
+                <input asp-for="Phone" class="form-control" placeholder="01711000111" />
+            </div>
+            <div class="col-md-7">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" type="email" />
+                <span asp-validation-for="Email" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Address" class="form-label"></label>
+                <input asp-for="Address" class="form-control" />
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+
+            <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                    <div class="form-text">Inactive suppliers are hidden from new purchase forms.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@(Model.IsEdit ? "Save changes" : "Add supplier")" />
+</form>

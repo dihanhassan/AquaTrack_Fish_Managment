@@ -536,6 +536,8 @@ public static class DemoDataSeeder
                 .FirstOrDefaultAsync(ct);
 
             batch.CurrentQuantity = Math.Max(0, batch.InitialQuantity - dead - caught);
+            batch.MortalityCount = dead;
+            batch.HarvestedCount = caught;
             batch.CurrentAvgWeightGram = latest?.AvgWeightGram ?? batch.InitialAvgWeightGram;
 
             if (batch.CurrentQuantity == 0)

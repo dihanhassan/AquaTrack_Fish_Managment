@@ -1,0 +1,41 @@
+@model PartyListViewModel<Customer>
+@{
+    ViewData["Title"] = "Customers";
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div class="flex-grow-1" style="max-width:320px">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Search name, phone or address"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-customer-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[name=dues]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div class="form-check mb-1">
+            <input type="checkbox" name="dues" value="true" class="form-check-input" id="dues-filter"
+                   checked="@Model.OnlyWithDues"
+                   hx-get="@Url.Action("List")"
+                   hx-target="#aq-customer-table"
+                   hx-swap="outerHTML"
+                   hx-include="[name=search]"
+                   hx-push-url="true" />
+            <label class="form-check-label small" for="dues-filter">Only with dues</label>
+        </div>
+
+        <div class="ms-auto">
+            <button type="button" class="btn btn-primary btn-sm"
+                    hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                <i class="bi bi-plus-lg me-1"></i>Add customer
+            </button>
+        </div>
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>

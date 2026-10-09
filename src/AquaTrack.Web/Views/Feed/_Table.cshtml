@@ -1,0 +1,129 @@
+@model FeedListViewModel
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var canRecord = canManage || User.IsInRole(Roles.Worker);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-feed-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-feed-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search) && !Model.OnlyLowStock
+            ? new EmptyStateViewModel {
+                Icon = "bi-basket",
+                Title = "No feed items",
+                Message = "Add the feeds you use so purchases and pond feeding can be costed.",
+                ActionLabel = canManage ? "Add feed item" : null,
+                ActionUrl = canManage ? Url.Action("Form") : null }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Feed item", "name", "start")" />
+                        <th>Type</th>
+                        <th>Supplier</th>
+                        <partial name="_SortHeader" model="@header("In stock", "stock", "end")" />
+                        <th class="text-end">Reorder at</th>
+                        <partial name="_SortHeader" model="@header("Avg cost", "cost", "end")" />
+                        <th class="text-end">Stock value</th>
+                        <th class="text-center">Status</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a class="fw-semibold" asp-action="Details" asp-route-id="@item.Id">@item.Name</a>
+                                @if (!string.IsNullOrWhiteSpace(item.Brand))
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@item.Brand</div>
+                                }
+                            </td>
+                            <td><span class="aq-badge aq-badge-neutral">@item.FeedType</span></td>
+                            <td class="text-muted-2">@(item.Supplier?.Name ?? "-")</td>
+                            <td class="num fw-semibold">
+                                @item.CurrentStock.ToString("N2") <span class="text-faint">@item.Unit</span>
+                            </td>
+                            <td class="num text-muted-2">@item.ReorderLevel.ToString("N2")</td>
+                            <td class="num">@item.AverageUnitCost.ToString("N2")</td>
+                            <td class="num">@item.StockValue.ToString("N2")</td>
+                            <td class="text-center">
+                                @if (!item.IsActive)
+                                {
+                                    <span class="aq-badge aq-badge-neutral">Inactive</span>
+                                }
+                                else if (item.CurrentStock <= 0)
+                                {
+                                    <span class="aq-badge aq-badge-danger">Out of stock</span>
+                                }
+                                else if (item.IsLowStock)
+                                {
+                                    <span class="aq-badge aq-badge-warning">Low</span>
+                                }
+                                else
+                                {
+                                    <span class="aq-badge aq-badge-success">OK</span>
+                                }
+                            </td>
+                            <td class="aq-row-actions">
+                                @if (canRecord)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record feeding"
+                                            hx-get="@Url.Action("UsageForm", new { feedItemId = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-arrow-down-circle"></i>
+                                    </button>
+                                }
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record purchase"
+                                            hx-get="@Url.Action("PurchaseForm", new { feedItemId = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-cart-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6">Stock value on this page</td>
+                        <td class="num">@Model.TotalStockValue.ToString("N2")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-feed-table", routeValues)" />
+    }
+</div>

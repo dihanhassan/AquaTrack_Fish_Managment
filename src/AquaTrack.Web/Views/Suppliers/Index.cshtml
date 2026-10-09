@@ -1,0 +1,29 @@
+@model PartyListViewModel<Supplier>
+@{
+    ViewData["Title"] = "Suppliers";
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div class="flex-grow-1" style="max-width:320px">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Search name, contact or phone"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-supplier-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div class="ms-auto">
+            <button type="button" class="btn btn-primary btn-sm"
+                    hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                <i class="bi bi-plus-lg me-1"></i>Add supplier
+            </button>
+        </div>
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>

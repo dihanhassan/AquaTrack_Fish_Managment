@@ -36,5 +36,22 @@ public class FishStock : BaseEntity
     public decimal TotalStockingCost => InitialQuantity * UnitCost;
     /// <summary>Live biomass in kg — drives feed recommendation and valuation.</summary>
     public decimal BiomassKg => CurrentQuantity * CurrentAvgWeightGram / 1000m;
-    public int TotalMortality => InitialQuantity - CurrentQuantity;
+
+    /// <summary>
+    /// Fish that died, kept denormalised alongside <see cref="CurrentQuantity"/> and recomputed
+    /// from the mortality records. Deliberately not derived from initial minus current, because
+    /// that difference also contains harvested fish, which are a sale rather than a loss.
+    /// </summary>
+    public int MortalityCount { get; set; }
+
+    /// <summary>Fish taken out alive and sold, recomputed from the harvest records.</summary>
+    public int HarvestedCount { get; set; }
+
+    public decimal MortalityPercent => InitialQuantity == 0
+        ? 0
+        : Math.Round((decimal)MortalityCount / InitialQuantity * 100, 1);
+
+    public decimal SurvivalPercent => InitialQuantity == 0
+        ? 0
+        : Math.Round((decimal)(InitialQuantity - MortalityCount) / InitialQuantity * 100, 1);
 }

@@ -78,7 +78,7 @@ public class ReportService(IApplicationDbContext db, ICashBookService cashBook) 
                     s.StockDate.ToString("dd MMM yyyy"),
                     s.InitialQuantity.ToString("N0"),
                     s.CurrentQuantity.ToString("N0"),
-                    s.TotalMortality.ToString("N0"),
+                    s.MortalityCount.ToString("N0"),
                     s.CurrentAvgWeightGram.ToString("N0"),
                     s.BiomassKg.ToString(Money),
                     s.Status.ToString(),

@@ -83,13 +83,12 @@ public class FishStockDetailsViewModel
     public IReadOnlyList<Harvest> Harvests { get; init; } = [];
     public IReadOnlyList<StockAdjustment> Adjustments { get; init; } = [];
 
-    public int TotalDead => MortalityRecords.Sum(m => m.Quantity);
-    public int TotalHarvested => Harvests.Sum(h => h.Quantity);
+    // Taken from the batch counters rather than the loaded page of records, which is capped at 30.
+    public int TotalDead => Batch.MortalityCount;
+    public int TotalHarvested => Batch.HarvestedCount;
     public decimal HarvestedKg => Harvests.Sum(h => h.TotalWeightKg);
 
-    public decimal SurvivalPercent => Batch.InitialQuantity == 0
-        ? 0
-        : Math.Round((decimal)(Batch.InitialQuantity - TotalDead) / Batch.InitialQuantity * 100, 1);
+    public decimal SurvivalPercent => Batch.SurvivalPercent;
 
     /// <summary>Growth samples oldest-first, which is the order a trend chart needs.</summary>
     public IEnumerable<FishGrowth> GrowthTrend => GrowthRecords.OrderBy(g => g.RecordDate);

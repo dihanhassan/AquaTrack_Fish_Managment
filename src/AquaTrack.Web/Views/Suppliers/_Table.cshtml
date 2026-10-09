@@ -1,0 +1,88 @@
+@model PartyListViewModel<Supplier>
+@{
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-supplier-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-supplier-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search)
+            ? new EmptyStateViewModel {
+                Icon = "bi-truck",
+                Title = "No suppliers yet",
+                Message = "Add the feed mills, pharmacies and hatcheries you buy from.",
+                ActionLabel = "Add supplier",
+                ActionUrl = Url.Action("Form") }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Supplier", "name", "start")" />
+                        <th>Contact</th>
+                        <th>Phone</th>
+                        <th>Address</th>
+                        <partial name="_SortHeader" model="@header("Payable", "payable", "end")" />
+                        <th class="text-center">Status</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var supplier in Model.Page.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@supplier.Name</td>
+                            <td>@(supplier.ContactPerson ?? "-")</td>
+                            <td>@(supplier.Phone ?? "-")</td>
+                            <td class="text-muted-2">@(supplier.Address ?? "-")</td>
+                            <td class="num @(supplier.PayableBalance > 0 ? "text-danger fw-semibold" : "")">
+                                @supplier.PayableBalance.ToString("N2")
+                            </td>
+                            <td class="text-center">
+                                <span class="aq-badge aq-badge-@(supplier.IsActive ? "success" : "neutral")">
+                                    @(supplier.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="aq-row-actions">
+                                <button type="button" class="btn btn-icon" title="Edit"
+                                        hx-get="@Url.Action("Form", new { id = supplier.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-icon danger" title="Delete"
+                                        hx-get="@Url.Action("ConfirmDelete", new { id = supplier.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4">Total payable</td>
+                        <td class="num">@Model.Page.Items.Sum(s => s.PayableBalance).ToString("N2")</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-supplier-table", routeValues)" />
+    }
+</div>

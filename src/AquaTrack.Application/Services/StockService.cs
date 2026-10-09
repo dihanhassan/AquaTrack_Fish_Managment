@@ -43,6 +43,10 @@ public class StockService(IApplicationDbContext db) : IStockService
 
         stock.CurrentQuantity = Math.Max(0, stock.InitialQuantity - dead - harvested + adjusted);
 
+        // Kept separate so reports can tell a loss (died) from a sale (harvested).
+        stock.MortalityCount = dead;
+        stock.HarvestedCount = harvested;
+
         // Average weight tracks the most recent sampling; falls back to the stocking weight.
         var latestGrowth = await db.FishGrowths
             .Where(g => g.FishStockId == fishStockId)

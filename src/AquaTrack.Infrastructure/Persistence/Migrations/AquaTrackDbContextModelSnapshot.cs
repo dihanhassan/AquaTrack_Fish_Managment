@@ -1066,6 +1066,9 @@ namespace AquaTrack.Infrastructure.Persistence.Migrations
                     b.Property<int>("FishTypeId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("HarvestedCount")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("InitialAvgWeightGram")
                         .HasPrecision(18, 3)
                         .HasColumnType("TEXT");
@@ -1074,6 +1077,9 @@ namespace AquaTrack.Infrastructure.Persistence.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MortalityCount")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Notes")
