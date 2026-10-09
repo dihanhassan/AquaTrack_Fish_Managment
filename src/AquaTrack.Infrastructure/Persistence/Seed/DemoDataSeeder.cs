@@ -501,12 +501,33 @@ public static class DemoDataSeeder
     {
         var harvests = new List<Harvest>();
 
+        // Weight samples per batch, so a sale is converted to a head count using the weight the
+        // fish actually were on that date. Using the stocking weight here would divide a sale by
+        // a fingerling weight and appear to empty the pond in one go.
+        var samples = await db.FishGrowths
+            .GroupBy(g => g.FishStockId)
+            .Select(g => new
+            {
+                FishStockId = g.Key,
+                Points = g.OrderBy(x => x.RecordDate)
+                    .Select(x => new { x.RecordDate, x.AvgWeightGram })
+                    .ToList(),
+            })
+            .ToDictionaryAsync(x => x.FishStockId, x => x.Points, ct);
+
         foreach (var sale in sales)
         {
             foreach (var item in sale.Items.Where(i => i.FishStockId != null))
             {
                 var batch = stocks.First(s => s.Id == item.FishStockId);
-                var avgWeight = batch.CurrentAvgWeightGram > 0 ? batch.CurrentAvgWeightGram : batch.InitialAvgWeightGram;
+
+                var avgWeight = batch.InitialAvgWeightGram;
+                if (samples.TryGetValue(batch.Id, out var points))
+                {
+                    var atSale = points.LastOrDefault(p => p.RecordDate <= sale.SaleDate);
+                    if (atSale is not null) avgWeight = atSale.AvgWeightGram;
+                }
+
                 var pieces = avgWeight > 0 ? (int)Math.Round(item.QuantityKg * 1000m / avgWeight) : 0;
 
                 harvests.Add(new Harvest

@@ -1,0 +1,148 @@
+@model MedicineDetailsViewModel
+@{
+    ViewData["Title"] = Model.Medicine.Name;
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var medicine = Model.Medicine;
+}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>All medicine
+    </a>
+    @if (canManage)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("PurchaseForm", new { medicineId = medicine.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-cart-plus me-1"></i>Record purchase
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto"
+                hx-get="@Url.Action("Form", new { id = medicine.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </button>
+    }
+</div>
+
+@if (medicine.IsExpired)
+{
+    <div class="alert alert-danger py-2 px-3 small">
+        <i class="bi bi-exclamation-octagon-fill me-1"></i>
+        This medicine expired on @medicine.ExpiryDate?.ToString("dd MMM yyyy").
+        Dispose of the remaining @medicine.CurrentStock.ToString("N2") @medicine.Unit safely and do not treat fish with it.
+    </div>
+}
+else if (medicine.IsExpiringSoon)
+{
+    <div class="alert alert-warning py-2 px-3 small">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        Expires on @medicine.ExpiryDate?.ToString("dd MMM yyyy") — use or replace it soon.
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "In Stock", Value = medicine.CurrentStock.ToString("N2") + " " + medicine.Unit,
+            Meta = "Reorder at " + medicine.ReorderLevel.ToString("N2"),
+            Icon = "bi-capsule",
+            Tone = medicine.IsLowStock ? "warning" : "accent" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Stock Value", Value = medicine.StockValue.ToString("N2"),
+            Meta = "At " + medicine.AverageUnitCost.ToString("N2") + " average cost",
+            Icon = "bi-cash", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Purchased", Value = Model.TotalPurchased.ToString("N2"),
+            Meta = "Cost " + Model.TotalPurchaseCost.ToString("N2"),
+            Icon = "bi-cart", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Used", Value = Model.TotalUsed.ToString("N2"),
+            Meta = "Cost " + Model.TotalUsageCost.ToString("N2"),
+            Icon = "bi-droplet", Tone = "success" })" />
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(medicine.Dosage))
+{
+    <div class="aq-card mt-3">
+        <div class="aq-card-header"><h2 class="aq-card-title">Dosage</h2></div>
+        <div class="aq-card-body text-muted-2">@medicine.Dosage</div>
+    </div>
+}
+
+<div class="row g-3 mt-0">
+    <div class="col-lg-6">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Recent purchases</h2></div>
+            @if (Model.Purchases.Count == 0)
+            {
+                <div class="aq-empty py-4"><div class="aq-empty-text">No purchases recorded.</div></div>
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Supplier</th>
+                                <th class="text-end">Qty</th><th class="text-end">Total</th>
+                                <th class="text-center">Expiry</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var purchase in Model.Purchases)
+                            {
+                                <tr>
+                                    <td>@purchase.PurchaseDate.ToString("dd MMM yyyy")</td>
+                                    <td class="text-muted-2">@(purchase.Supplier?.Name ?? "-")</td>
+                                    <td class="num">@purchase.Quantity.ToString("N2")</td>
+                                    <td class="num">@purchase.TotalPrice.ToString("N2")</td>
+                                    <td class="text-center">@(purchase.ExpiryDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Recent treatments</h2></div>
+            @if (Model.Usages.Count == 0)
+            {
+                <div class="aq-empty py-4"><div class="aq-empty-text">No treatments recorded.</div></div>
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th><th>Pond</th>
+                                <th class="text-end">Qty</th><th class="text-end">Cost</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var usage in Model.Usages)
+                            {
+                                <tr>
+                                    <td>@usage.UsageDate.ToString("dd MMM yyyy")</td>
+                                    <td>@(usage.Pond?.Name ?? "-")</td>
+                                    <td class="num">@usage.Quantity.ToString("N2")</td>
+                                    <td class="num">@usage.TotalCost.ToString("N2")</td>
+                                    <td class="text-muted-2">@(usage.Purpose ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

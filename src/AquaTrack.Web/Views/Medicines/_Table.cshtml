@@ -1,0 +1,133 @@
+@model MedicineListViewModel
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var canRecord = canManage || User.IsInRole(Roles.Worker);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-medicine-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-medicine-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search) && string.IsNullOrEmpty(Model.Filter)
+            ? new EmptyStateViewModel {
+                Icon = "bi-capsule",
+                Title = "No medicines yet",
+                Message = "Add the treatments, probiotics and lime you keep in store.",
+                ActionLabel = canManage ? "Add medicine" : null,
+                ActionUrl = canManage ? Url.Action("Form") : null }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Medicine", "name", "start")" />
+                        <th>Type</th>
+                        <partial name="_SortHeader" model="@header("In stock", "stock", "end")" />
+                        <th class="text-end">Reorder at</th>
+                        <th class="text-end">Stock value</th>
+                        <partial name="_SortHeader" model="@header("Expiry", "expiry", "center")" />
+                        <th class="text-center">Status</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var medicine in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a class="fw-semibold" asp-action="Details" asp-route-id="@medicine.Id">@medicine.Name</a>
+                                @if (!string.IsNullOrWhiteSpace(medicine.Brand))
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@medicine.Brand</div>
+                                }
+                            </td>
+                            <td><span class="aq-badge aq-badge-neutral">@medicine.MedicineType</span></td>
+                            <td class="num fw-semibold">
+                                @medicine.CurrentStock.ToString("N2") <span class="text-faint">@medicine.Unit</span>
+                            </td>
+                            <td class="num text-muted-2">@medicine.ReorderLevel.ToString("N2")</td>
+                            <td class="num">@medicine.StockValue.ToString("N2")</td>
+                            <td class="text-center @(medicine.IsExpired ? "text-danger fw-semibold" : "")">
+                                @(medicine.ExpiryDate?.ToString("dd MMM yyyy") ?? "-")
+                            </td>
+                            <td class="text-center">
+                                @if (medicine.IsExpired)
+                                {
+                                    <span class="aq-badge aq-badge-danger">Expired</span>
+                                }
+                                else if (medicine.IsExpiringSoon)
+                                {
+                                    <span class="aq-badge aq-badge-warning">Expiring</span>
+                                }
+                                else if (medicine.IsLowStock)
+                                {
+                                    <span class="aq-badge aq-badge-warning">Low</span>
+                                }
+                                else if (!medicine.IsActive)
+                                {
+                                    <span class="aq-badge aq-badge-neutral">Inactive</span>
+                                }
+                                else
+                                {
+                                    <span class="aq-badge aq-badge-success">OK</span>
+                                }
+                            </td>
+                            <td class="aq-row-actions">
+                                @if (canRecord)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record treatment"
+                                            hx-get="@Url.Action("UsageForm", new { medicineId = medicine.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-droplet"></i>
+                                    </button>
+                                }
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record purchase"
+                                            hx-get="@Url.Action("PurchaseForm", new { medicineId = medicine.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-cart-plus"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = medicine.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = medicine.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4">Stock value on this page</td>
+                        <td class="num">@Model.TotalStockValue.ToString("N2")</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-medicine-table", routeValues)" />
+    }
+</div>

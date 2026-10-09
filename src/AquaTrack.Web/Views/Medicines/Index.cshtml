@@ -1,0 +1,57 @@
+@model MedicineListViewModel
+@{
+    ViewData["Title"] = "Medicine";
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var canRecord = canManage || User.IsInRole(Roles.Worker);
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div class="flex-grow-1" style="max-width:280px">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Search medicine or brand"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-medicine-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[name=filter]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div>
+            <select name="filter" class="form-select form-select-sm"
+                    hx-get="@Url.Action("List")" hx-target="#aq-medicine-table" hx-swap="outerHTML"
+                    hx-include="[name=search]" hx-push-url="true">
+                <option value="">All medicines</option>
+                <option value="low" selected="@(Model.Filter == "low")">Low stock</option>
+                <option value="expiring" selected="@(Model.Filter == "expiring")">Expiring in 30 days</option>
+                <option value="expired" selected="@(Model.Filter == "expired")">Expired</option>
+            </select>
+        </div>
+
+        <div class="ms-auto d-flex gap-2">
+            @if (canRecord)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm"
+                        hx-get="@Url.Action("UsageForm")" hx-target="#aq-modal-content">
+                    <i class="bi bi-droplet me-1"></i>Record treatment
+                </button>
+            }
+            @if (canManage)
+            {
+                <button type="button" class="btn btn-outline-primary btn-sm"
+                        hx-get="@Url.Action("PurchaseForm")" hx-target="#aq-modal-content">
+                    <i class="bi bi-cart-plus me-1"></i>Record purchase
+                </button>
+                <button type="button" class="btn btn-primary btn-sm"
+                        hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                    <i class="bi bi-plus-lg me-1"></i>Add medicine
+                </button>
+            }
+        </div>
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>
