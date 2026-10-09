@@ -1,0 +1,21 @@
+@model ConfirmViewModel
+<div class="modal-header">
+    <h5 class="modal-title">@Model.Title</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    <p class="mb-1">@Model.Message</p>
+    @if (!string.IsNullOrWhiteSpace(Model.Detail))
+    {
+        <p class="text-muted-2 small mb-0">@Model.Detail</p>
+    }
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button type="button" class="btn @Model.ConfirmClass"
+            hx-delete="@(Model.Method == "delete" ? Model.Action : null)"
+            hx-post="@(Model.Method == "post" ? Model.Action : null)"
+            hx-target="#aq-modal-content">
+        @Model.ConfirmLabel
+    </button>
+</div>

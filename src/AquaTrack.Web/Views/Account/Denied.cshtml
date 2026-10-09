@@ -1,0 +1,13 @@
+@{
+    ViewData["Title"] = "Access denied";
+}
+<div class="aq-card">
+    <div class="aq-card-body text-center py-5">
+        <div style="font-size:2.6rem" class="text-warning mb-2"><i class="bi bi-shield-lock"></i></div>
+        <h2 class="h5">You do not have access to this page</h2>
+        <p class="text-muted-2 mb-4">Your role does not include this area. Ask an administrator if you need access.</p>
+        <a class="btn btn-primary" asp-controller="Dashboard" asp-action="Index">
+            <i class="bi bi-house me-1"></i>Back to dashboard
+        </a>
+    </div>
+</div>

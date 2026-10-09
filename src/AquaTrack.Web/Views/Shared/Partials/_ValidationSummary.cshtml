@@ -1,0 +1,31 @@
+@*
+    Server-side errors that are not tied to one field. HTMX re-renders the whole
+    form partial on a 422, so this is the only place a form-level error appears.
+*@
+@{
+    var errors = ViewData.ModelState
+        .Where(kv => string.IsNullOrEmpty(kv.Key) || kv.Key == "__form")
+        .SelectMany(kv => kv.Value!.Errors)
+        .Select(e => e.ErrorMessage)
+        .Where(m => !string.IsNullOrWhiteSpace(m))
+        .ToList();
+}
+@if (errors.Count > 0)
+{
+    <div class="alert alert-danger py-2 px-3 small mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        @if (errors.Count == 1)
+        {
+            @errors[0]
+        }
+        else
+        {
+            <ul class="mb-0 ps-3">
+                @foreach (var error in errors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        }
+    </div>
+}

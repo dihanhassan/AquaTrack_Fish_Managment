@@ -1,0 +1,99 @@
+@inject ISettingsService Settings
+@{
+    var farmName = await Settings.GetAsync(SettingKeys.FarmName, "AquaTrack");
+    var controller = ViewContext.RouteData.Values["controller"] as string ?? string.Empty;
+
+    // Marks the navigation entry matching the controller currently being rendered.
+    Func<string, string> active = name =>
+        string.Equals(controller, name, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+
+    var isAdmin = User.IsInRole(Roles.Admin);
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+}
+<aside class="aq-sidebar">
+    <a class="aq-brand" asp-controller="Dashboard" asp-action="Index">
+        <span class="aq-brand-mark">&#128031;</span>
+        <span class="text-truncate">@farmName</span>
+    </a>
+
+    <nav class="aq-nav">
+        <a class="aq-nav-link @active("Dashboard")" asp-controller="Dashboard" asp-action="Index">
+            <i class="bi bi-speedometer2 aq-nav-icon"></i> Dashboard
+        </a>
+        <a class="aq-nav-link @active("DailyInput")" asp-controller="DailyInput" asp-action="Index">
+            <i class="bi bi-calendar-check aq-nav-icon"></i> Daily Input
+        </a>
+
+        <div class="aq-nav-section">Farm</div>
+        <a class="aq-nav-link @active("Ponds")" asp-controller="Ponds" asp-action="Index">
+            <i class="bi bi-water aq-nav-icon"></i> Ponds
+        </a>
+        <a class="aq-nav-link @active("FishStocks")" asp-controller="FishStocks" asp-action="Index">
+            <i class="bi bi-box-seam aq-nav-icon"></i> Fish Stock
+        </a>
+        <a class="aq-nav-link @active("FishTypes")" asp-controller="FishTypes" asp-action="Index">
+            <i class="bi bi-tags aq-nav-icon"></i> Species
+        </a>
+        <a class="aq-nav-link @active("WaterQuality")" asp-controller="WaterQuality" asp-action="Index">
+            <i class="bi bi-droplet-half aq-nav-icon"></i> Water Quality
+        </a>
+
+        <div class="aq-nav-section">Inventory</div>
+        <a class="aq-nav-link @active("Feed")" asp-controller="Feed" asp-action="Index">
+            <i class="bi bi-basket aq-nav-icon"></i> Feed
+        </a>
+        <a class="aq-nav-link @active("Medicines")" asp-controller="Medicines" asp-action="Index">
+            <i class="bi bi-capsule aq-nav-icon"></i> Medicine
+        </a>
+        <a class="aq-nav-link @active("Equipment")" asp-controller="Equipment" asp-action="Index">
+            <i class="bi bi-gear-wide-connected aq-nav-icon"></i> Equipment
+        </a>
+
+        @if (canManage)
+        {
+            <div class="aq-nav-section">Trade</div>
+            <a class="aq-nav-link @active("Purchases")" asp-controller="Purchases" asp-action="Index">
+                <i class="bi bi-cart3 aq-nav-icon"></i> Purchases
+            </a>
+            <a class="aq-nav-link @active("Sales")" asp-controller="Sales" asp-action="Index">
+                <i class="bi bi-receipt aq-nav-icon"></i> Sales
+            </a>
+            <a class="aq-nav-link @active("Suppliers")" asp-controller="Suppliers" asp-action="Index">
+                <i class="bi bi-truck aq-nav-icon"></i> Suppliers
+            </a>
+            <a class="aq-nav-link @active("Customers")" asp-controller="Customers" asp-action="Index">
+                <i class="bi bi-people aq-nav-icon"></i> Customers
+            </a>
+
+            <div class="aq-nav-section">Finance</div>
+            <a class="aq-nav-link @active("Expenses")" asp-controller="Expenses" asp-action="Index">
+                <i class="bi bi-wallet2 aq-nav-icon"></i> Expenses
+            </a>
+            <a class="aq-nav-link @active("Cash")" asp-controller="Cash" asp-action="Index">
+                <i class="bi bi-cash-stack aq-nav-icon"></i> Cash Book
+            </a>
+            <a class="aq-nav-link @active("Reports")" asp-controller="Reports" asp-action="Index">
+                <i class="bi bi-file-earmark-bar-graph aq-nav-icon"></i> Reports
+            </a>
+        }
+
+        <div class="aq-nav-section">Intelligence</div>
+        <a class="aq-nav-link @active("Ai")" asp-controller="Ai" asp-action="Index">
+            <i class="bi bi-robot aq-nav-icon"></i> AI Insights
+        </a>
+        <a class="aq-nav-link @active("Assistant")" asp-controller="Assistant" asp-action="Index">
+            <i class="bi bi-chat-dots aq-nav-icon"></i> Assistant
+        </a>
+
+        @if (isAdmin)
+        {
+            <div class="aq-nav-section">Administration</div>
+            <a class="aq-nav-link @active("Users")" asp-controller="Users" asp-action="Index">
+                <i class="bi bi-person-badge aq-nav-icon"></i> Users
+            </a>
+            <a class="aq-nav-link @active("Settings")" asp-controller="Settings" asp-action="Index">
+                <i class="bi bi-sliders aq-nav-icon"></i> Settings
+            </a>
+        }
+    </nav>
+</aside>

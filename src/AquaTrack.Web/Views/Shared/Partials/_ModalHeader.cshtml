@@ -1,0 +1,9 @@
+@*
+    Standard modal chrome, top half. Form partials render this, their fields,
+    then _ModalFooter, so every dialog in the app looks and behaves the same.
+*@
+@model string
+<div class="modal-header">
+    <h5 class="modal-title">@Model</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>

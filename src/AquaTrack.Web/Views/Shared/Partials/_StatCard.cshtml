@@ -1,0 +1,32 @@
+@model StatCardViewModel
+@{
+    var tag = string.IsNullOrWhiteSpace(Model.Url) ? "div" : "a";
+}
+@if (tag == "a")
+{
+    <a class="aq-stat" href="@Model.Url">
+        <div class="aq-stat-icon @Model.Tone"><i class="bi @Model.Icon"></i></div>
+        <div style="min-width:0">
+            <div class="aq-stat-label">@Model.Label</div>
+            <div class="aq-stat-value">@Model.Value</div>
+            @if (!string.IsNullOrWhiteSpace(Model.Meta))
+            {
+                <div class="aq-stat-meta">@Model.Meta</div>
+            }
+        </div>
+    </a>
+}
+else
+{
+    <div class="aq-stat">
+        <div class="aq-stat-icon @Model.Tone"><i class="bi @Model.Icon"></i></div>
+        <div style="min-width:0">
+            <div class="aq-stat-label">@Model.Label</div>
+            <div class="aq-stat-value">@Model.Value</div>
+            @if (!string.IsNullOrWhiteSpace(Model.Meta))
+            {
+                <div class="aq-stat-meta">@Model.Meta</div>
+            }
+        </div>
+    </div>
+}

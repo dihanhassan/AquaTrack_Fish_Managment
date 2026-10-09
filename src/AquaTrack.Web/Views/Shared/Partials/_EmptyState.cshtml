@@ -1,0 +1,13 @@
+@model EmptyStateViewModel
+<div class="aq-empty">
+    <div class="aq-empty-icon"><i class="bi @Model.Icon"></i></div>
+    <div class="aq-empty-title">@Model.Title</div>
+    <div class="aq-empty-text">@Model.Message</div>
+    @if (!string.IsNullOrWhiteSpace(Model.ActionLabel) && !string.IsNullOrWhiteSpace(Model.ActionUrl))
+    {
+        <button type="button" class="btn btn-primary btn-sm mt-3"
+                hx-get="@Model.ActionUrl" hx-target="#aq-modal-content">
+            <i class="bi bi-plus-lg me-1"></i>@Model.ActionLabel
+        </button>
+    }
+</div>

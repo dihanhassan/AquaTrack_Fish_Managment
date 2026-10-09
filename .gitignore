@@ -1,0 +1,40 @@
+## .NET build output
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+
+## User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+## Local databases (created on first run by the migrator/seeder)
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+
+## Local secrets and environment overrides
+appsettings.Local.json
+appsettings.*.Local.json
+.env
+*.pfx
+
+## Generated reports
+exports/
+
+## OS noise
+.DS_Store
+Thumbs.db
+desktop.ini

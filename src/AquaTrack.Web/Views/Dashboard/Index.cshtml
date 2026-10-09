@@ -1,0 +1,189 @@
+@model DashboardViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Dashboard";
+
+    // Chart data is serialised once here and read by the script block at the bottom.
+    var json = (object value) => Json.Serialize(value);
+}
+
+<partial name="_SummaryCards" model="Model" />
+
+<div class="row g-3 mt-0">
+    <div class="col-lg-8">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Income vs Expense</h2>
+                <span class="text-faint small ms-auto">Last 6 months</span>
+            </div>
+            <div class="aq-card-body">
+                <div class="aq-chart-wrap"><canvas id="chart-income-expense"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Expense by Category</h2>
+                <span class="text-faint small ms-auto">This month</span>
+            </div>
+            <div class="aq-card-body">
+                @if (Model.ExpenseByCategory.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-icon"><i class="bi bi-pie-chart"></i></div>
+                        <div class="aq-empty-text">No expenses recorded this month.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="aq-chart-wrap"><canvas id="chart-expense-category"></canvas></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Daily Sales</h2>
+                <span class="text-faint small ms-auto">Last 14 days</span>
+            </div>
+            <div class="aq-card-body">
+                <div class="aq-chart-wrap"><canvas id="chart-daily-sales"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Alerts</h2>
+                <a class="ms-auto small" asp-controller="Notifications" asp-action="Index">View all</a>
+            </div>
+            <div class="aq-card-body p-0">
+                @if (Model.RecentAlerts.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-icon"><i class="bi bi-check2-circle"></i></div>
+                        <div class="aq-empty-text">Nothing needs your attention.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var alert in Model.RecentAlerts)
+                        {
+                            var tone = alert.Severity switch
+                            {
+                                NotificationSeverity.Critical => "danger",
+                                NotificationSeverity.Warning => "warning",
+                                NotificationSeverity.Success => "success",
+                                _ => "info",
+                            };
+
+                            <div class="list-group-item d-flex gap-2 py-2 px-3 @(alert.IsRead ? "opacity-75" : "")">
+                                <span class="aq-badge aq-badge-@tone" style="height:fit-content">
+                                    <i class="bi bi-exclamation-circle"></i>
+                                </span>
+                                <div style="min-width:0">
+                                    <div class="fw-semibold" style="font-size:.82rem">@alert.Title</div>
+                                    <div class="text-muted-2" style="font-size:.76rem">@alert.Message</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Feed Usage by Pond</h2>
+                <span class="text-faint small ms-auto">This month</span>
+            </div>
+            <div class="aq-card-body">
+                @if (Model.FeedUsageByPond.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-icon"><i class="bi bi-basket"></i></div>
+                        <div class="aq-empty-text">No feeding recorded this month.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="aq-chart-wrap"><canvas id="chart-feed-pond"></canvas></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Production by Pond</h2>
+                <span class="text-faint small ms-auto">Last 6 months</span>
+            </div>
+            <div class="aq-card-body">
+                @if (Model.ProductionByPond.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-icon"><i class="bi bi-box-seam"></i></div>
+                        <div class="aq-empty-text">No harvest recorded yet.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="aq-chart-wrap"><canvas id="chart-production-pond"></canvas></div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var data = {
+                incomeExpense: @json(Model.IncomeVsExpense),
+                dailySales: @json(Model.DailySales),
+                expenseCategory: @json(Model.ExpenseByCategory),
+                feedPond: @json(Model.FeedUsageByPond),
+                productionPond: @json(Model.ProductionByPond)
+            };
+
+            function labels(rows) { return rows.map(function (r) { return r.label; }); }
+            function values(rows) { return rows.map(function (r) { return r.value; }); }
+
+            AquaTrack.chart('chart-income-expense', 'bar', labels(data.incomeExpense), [
+                { label: 'Income', data: data.incomeExpense.map(function (r) { return r.first; }), color: '#16794c' },
+                { label: 'Expense', data: data.incomeExpense.map(function (r) { return r.second; }), color: '#b3261e' }
+            ]);
+
+            AquaTrack.chart('chart-daily-sales', 'line', labels(data.dailySales), [
+                { label: 'Sales', data: values(data.dailySales) }
+            ]);
+
+            if (data.expenseCategory.length) {
+                AquaTrack.chart('chart-expense-category', 'doughnut', labels(data.expenseCategory), [
+                    { label: 'Expense', data: values(data.expenseCategory) }
+                ], { plugins: { legend: { position: 'bottom' } }, cutout: '58%' });
+            }
+
+            if (data.feedPond.length) {
+                AquaTrack.chart('chart-feed-pond', 'bar', labels(data.feedPond), [
+                    { label: 'Feed (kg)', data: values(data.feedPond), color: '#0fa89a' }
+                ], { plugins: { legend: { display: false } } });
+            }
+
+            if (data.productionPond.length) {
+                AquaTrack.chart('chart-production-pond', 'bar', labels(data.productionPond), [
+                    { label: 'Harvest (kg)', data: values(data.productionPond), color: '#0f6fa8' }
+                ], { plugins: { legend: { display: false } } });
+            }
+        })();
+    </script>
+}

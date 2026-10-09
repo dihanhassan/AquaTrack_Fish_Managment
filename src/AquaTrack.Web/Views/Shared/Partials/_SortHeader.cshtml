@@ -1,0 +1,8 @@
+@model SortHeaderViewModel
+<th class="text-@Model.Align">
+    <a class="aq-sort @(Model.IsActive ? "is-active" : "")" href="#"
+       hx-get="@Model.SortUrl()" hx-target="@Model.Target" hx-swap="outerHTML" hx-push-url="true">
+        @Model.Label
+        <i class="bi @Model.Icon aq-sort-icon"></i>
+    </a>
+</th>

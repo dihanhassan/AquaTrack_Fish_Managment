@@ -1,0 +1,96 @@
+@model DashboardViewModel
+@*
+    The KPI row. Rendered inside Index on first load and swapped on its own when the
+    dashboard refreshes, so the charts below are not rebuilt unnecessarily.
+*@
+@{
+    var s = Model.Summary;
+    var profitTone = s.TodayProfit >= 0 ? "success" : "danger";
+}
+<div id="aq-summary" class="row g-3" hx-get="@Url.Action("Summary")" hx-trigger="every 120s" hx-swap="outerHTML">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Total Fish Stock",
+            Value = s.TotalFishCount.ToString("N0") + " pcs",
+            Meta = s.TotalBiomassKg.ToString("N1") + " kg biomass in " + s.ActiveBatches + " batch(es)",
+            Icon = "bi-water", Tone = "primary",
+            Url = Url.Action("Index", "FishStocks") })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Feed Stock",
+            Value = s.FeedStockKg.ToString("N0") + " kg",
+            Meta = "Worth " + Model.Money(s.FeedStockValue),
+            Icon = "bi-basket", Tone = "accent",
+            Url = Url.Action("Index", "Feed") })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Medicine Stock",
+            Value = Model.Money(s.MedicineStockValue),
+            Meta = s.ExpiringMedicineCount > 0
+                ? s.ExpiringMedicineCount + " expiring within 30 days"
+                : "Nothing expiring soon",
+            Icon = "bi-capsule",
+            Tone = s.ExpiringMedicineCount > 0 ? "warning" : "accent",
+            Url = Url.Action("Index", "Medicines") })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Total Production",
+            Value = s.TotalProductionKg.ToString("N0") + " kg",
+            Meta = "Harvested to date",
+            Icon = "bi-box-seam", Tone = "primary",
+            Url = Url.Action("Report", "Reports", new { kind = ReportKind.Production }) })" />
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Today's Income",
+            Value = Model.Money(s.TodayIncome),
+            Meta = "This month " + Model.Money(s.MonthIncome),
+            Icon = "bi-arrow-down-circle", Tone = "success",
+            Url = Url.Action("Index", "Cash") })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Today's Expense",
+            Value = Model.Money(s.TodayExpense),
+            Meta = "This month " + Model.Money(s.MonthExpense),
+            Icon = "bi-arrow-up-circle", Tone = "warning",
+            Url = Url.Action("Index", "Expenses") })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Today's Profit",
+            Value = Model.Money(s.TodayProfit),
+            Meta = "This month " + Model.Money(s.MonthProfit),
+            Icon = s.TodayProfit >= 0 ? "bi-graph-up-arrow" : "bi-graph-down-arrow",
+            Tone = profitTone,
+            Url = Url.Action("Report", "Reports", new { kind = ReportKind.ProfitLoss }) })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Cash in Hand",
+            Value = Model.Money(s.CashBalance),
+            Meta = "Receivable " + Model.Money(s.ReceivableTotal) + " / Payable " + Model.Money(s.PayableTotal),
+            Icon = "bi-cash-stack", Tone = "accent",
+            Url = Url.Action("Index", "Cash") })" />
+    </div>
+
+    @if (s.LowStockCount > 0)
+    {
+        <div class="col-12">
+            <a class="aq-stat" href="@Url.Action("Index", "Notifications")">
+                <div class="aq-stat-icon danger"><i class="bi bi-exclamation-triangle"></i></div>
+                <div>
+                    <div class="aq-stat-label">Low Stock Items</div>
+                    <div class="aq-stat-value">@s.LowStockCount</div>
+                    <div class="aq-stat-meta">
+                        Feed or medicine at or below reorder level. Review and restock.
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+</div>

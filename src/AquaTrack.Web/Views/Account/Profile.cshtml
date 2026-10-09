@@ -1,0 +1,82 @@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "My profile";
+    var hasErrors = ViewData.ModelState.ErrorCount > 0;
+}
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="aq-card">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Profile details</h2>
+            </div>
+            <form asp-action="Profile" method="post">
+                <div class="aq-card-body">
+                    @if (hasErrors)
+                    {
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 small"></div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" disabled />
+                            <div class="form-text">Your sign-in address cannot be changed here.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control" />
+                            <span asp-validation-for="PhoneNumber" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Designation" class="form-label"></label>
+                            <input asp-for="Designation" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="aq-card-header border-top border-bottom-0 justify-content-end">
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="aq-card">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Access</h2>
+            </div>
+            <div class="aq-card-body">
+                <div class="aq-stat-label">Roles</div>
+                <div class="mb-3">
+                    @if (Model.Roles.Count == 0)
+                    {
+                        <span class="text-muted-2 small">No roles assigned.</span>
+                    }
+                    else
+                    {
+                        foreach (var role in Model.Roles)
+                        {
+                            <span class="aq-badge aq-badge-info me-1">@role</span>
+                        }
+                    }
+                </div>
+
+                <div class="aq-stat-label">Last sign-in</div>
+                <div class="mb-3">
+                    @(Model.LastLoginUtc.HasValue
+                        ? Model.LastLoginUtc.Value.ToLocalTime().ToString("dd MMM yyyy HH:mm")
+                        : "-")
+                </div>
+
+                <a class="btn btn-outline-primary btn-sm" asp-action="ChangePassword">
+                    <i class="bi bi-key me-1"></i>Change password
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

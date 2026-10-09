@@ -1,0 +1,71 @@
+@inject ISettingsService Settings
+@{
+    var farmName = await Settings.GetAsync(SettingKeys.FarmName, "AquaTrack");
+    var pageTitle = ViewData["Title"] as string ?? "Dashboard";
+    var pageSubtitle = ViewData["Subtitle"] as string;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@pageTitle &middot; @farmName</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div id="aq-progress"></div>
+
+    @await Html.PartialAsync("_Sidebar")
+    <div class="aq-scrim"></div>
+
+    <div class="aq-main">
+        <header class="aq-topbar">
+            <button type="button" class="btn btn-icon d-lg-none" data-aq-toggle-sidebar aria-label="Toggle menu">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+
+            <div class="flex-grow-1" style="min-width:0">
+                <h1 class="aq-topbar-title text-truncate">@pageTitle</h1>
+                @if (!string.IsNullOrWhiteSpace(pageSubtitle))
+                {
+                    <div class="aq-topbar-sub text-truncate">@pageSubtitle</div>
+                }
+            </div>
+
+            @await Html.PartialAsync("_TopbarActions")
+        </header>
+
+        <main class="aq-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    @* One modal element serves every form in the app; controllers swap their partial into the body. *@
+    <div class="modal fade" id="aq-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" id="aq-modal-dialog">
+            <div class="modal-content" id="aq-modal-content"></div>
+        </div>
+    </div>
+
+    <div class="aq-toasts" id="aq-toasts">
+        @if (TempData["Toast"] is string flash && flash.Contains('|'))
+        {
+            var parts = flash.Split('|', 2);
+            <div class="aq-toast @parts[0]">
+                <div>@parts[1]</div>
+                <button type="button" class="aq-toast-close" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+        }
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/htmx/htmx.min.js"></script>
+    <script src="~/lib/chartjs/chart.umd.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

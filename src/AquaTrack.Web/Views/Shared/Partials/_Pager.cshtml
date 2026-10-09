@@ -1,0 +1,63 @@
+@model PagerViewModel
+@{
+    var target = Model.Target;
+    var url = Model.Url;
+
+    // Keep the window of page links small so the pager never wraps.
+    var window = 2;
+    var first = Math.Max(1, Model.Page - window);
+    var last = Math.Min(Model.TotalPages, Model.Page + window);
+}
+<div class="aq-pager">
+    <div>
+        Showing <strong>@Model.FirstItemIndex</strong>&ndash;<strong>@Model.LastItemIndex</strong>
+        of <strong>@Model.TotalCount.ToString("N0")</strong>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                <a class="page-link" href="#" hx-get="@Model.PageUrl(Model.Page - 1)"
+                   hx-target="@target" hx-swap="outerHTML" hx-push-url="true">&laquo;</a>
+            </li>
+
+            @if (first > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="#" hx-get="@Model.PageUrl(1)"
+                       hx-target="@target" hx-swap="outerHTML" hx-push-url="true">1</a>
+                </li>
+                @if (first > 2)
+                {
+                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                }
+            }
+
+            @for (var p = first; p <= last; p++)
+            {
+                <li class="page-item @(p == Model.Page ? "active" : "")">
+                    <a class="page-link" href="#" hx-get="@Model.PageUrl(p)"
+                       hx-target="@target" hx-swap="outerHTML" hx-push-url="true">@p</a>
+                </li>
+            }
+
+            @if (last < Model.TotalPages)
+            {
+                @if (last < Model.TotalPages - 1)
+                {
+                    <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                }
+                <li class="page-item">
+                    <a class="page-link" href="#" hx-get="@Model.PageUrl(Model.TotalPages)"
+                       hx-target="@target" hx-swap="outerHTML" hx-push-url="true">@Model.TotalPages</a>
+                </li>
+            }
+
+            <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="#" hx-get="@Model.PageUrl(Model.Page + 1)"
+                   hx-target="@target" hx-swap="outerHTML" hx-push-url="true">&raquo;</a>
+            </li>
+        </ul>
+    }
+</div>
