@@ -1,8 +1,8 @@
-using AquaTrack.Infrastructure.Ai;
+using AquaTrack.Application.Common.Interfaces;
+using AquaTrack.Application.Reporting;
 using AquaTrack.Infrastructure.Identity;
 using AquaTrack.Infrastructure.Persistence;
 using AquaTrack.Infrastructure.Reporting;
-using AquaTrack.Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -13,14 +13,17 @@ namespace AquaTrack.Infrastructure;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers persistence, identity, business services and the AI module.
-    /// The database provider is chosen by configuration so the same build runs on SQLite or SQL Server.
+    /// Registers the outward-facing concerns: the database, Identity, and document rendering.
+    /// Each is bound to the abstraction the application layer declared, so swapping any of them
+    /// does not touch a use case.
     /// </summary>
     public static IServiceCollection AddAquaTrackInfrastructure(
         this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddMemoryCache();
         services.AddDbContext<AquaTrackDbContext>(options => ConfigureProvider(options, configuration));
+
+        // Application code resolves the interface; only migrations and seeding use the concrete type.
+        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<AquaTrackDbContext>());
 
         services
             .AddIdentity<ApplicationUser, ApplicationRole>(options =>
@@ -35,30 +38,15 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<AquaTrackDbContext>()
             .AddDefaultTokenProviders();
 
-        services.AddScoped<ISettingsService, SettingsService>();
-        services.AddScoped<IDocumentNumberService, DocumentNumberService>();
-        services.AddScoped<ICashBookService, CashBookService>();
-        services.AddScoped<IStockService, StockService>();
-        services.AddScoped<IDashboardService, DashboardService>();
-        services.AddScoped<INotificationService, NotificationService>();
-
-        services.AddScoped<IPurchaseService, PurchaseService>();
-        services.AddScoped<ISaleService, SaleService>();
-        services.AddScoped<IExpenseService, ExpenseService>();
-        services.AddScoped<IDailyLogService, DailyLogService>();
-
-        services.AddScoped<IFeedAdvisor, FeedAdvisor>();
-        services.AddScoped<IGrowthPredictor, GrowthPredictor>();
-        services.AddScoped<IFinancePredictor, FinancePredictor>();
-        services.AddScoped<IAnomalyDetector, AnomalyDetector>();
-        services.AddScoped<ISmartAssistant, SmartAssistant>();
-
         services.AddScoped<IReportExporter, ReportExporter>();
-        services.AddScoped<IReportService, ReportService>();
 
         return services;
     }
 
+    /// <summary>
+    /// Picks the database provider from configuration, so the same build runs on SQLite for a
+    /// quick local start or SQL Server for a server deployment.
+    /// </summary>
     private static void ConfigureProvider(DbContextOptionsBuilder options, IConfiguration configuration)
     {
         var provider = configuration.GetValue("Database:Provider", "Sqlite")!;

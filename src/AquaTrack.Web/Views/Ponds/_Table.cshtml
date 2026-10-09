@@ -1,0 +1,118 @@
+@model PondListViewModel
+@*
+    The list region. Search, sort, paging and every save swap this partial alone,
+    so the surrounding page and its filter state are never rebuilt.
+*@
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label,
+        Key = key,
+        Align = align,
+        Url = listUrl,
+        Target = "#aq-pond-table",
+        CurrentSort = Model.Query.Sort,
+        CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-pond-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search) && string.IsNullOrEmpty(Model.StatusFilter)
+            ? new EmptyStateViewModel {
+                Icon = "bi-water",
+                Title = "No ponds yet",
+                Message = "Add your first pond to start tracking stock, feeding and water quality.",
+                ActionLabel = canManage ? "Add pond" : null,
+                ActionUrl = canManage ? Url.Action("Form") : null }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table align-middle">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Pond", "name", "start")" />
+                        <partial name="_SortHeader" model="@header("Area", "area", "end")" />
+                        <partial name="_SortHeader" model="@header("Depth", "depth", "end")" />
+                        <th>Water</th>
+                        <th class="text-end">Live Fish</th>
+                        <th class="text-end">Biomass</th>
+                        <th class="text-end">Density</th>
+                        <partial name="_SortHeader" model="@header("Status", "status", "center")" />
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pond in Model.Page.Items)
+                    {
+                        var statusTone = pond.Status switch
+                        {
+                            PondStatus.Active => "success",
+                            PondStatus.UnderMaintenance => "warning",
+                            PondStatus.Drying => "info",
+                            _ => "neutral",
+                        };
+
+                        <tr>
+                            <td>
+                                <a class="fw-semibold" asp-action="Details" asp-route-id="@pond.Id">@pond.Name</a>
+                                <div class="text-faint" style="font-size:.74rem">
+                                    @(pond.Code ?? "-")@(string.IsNullOrWhiteSpace(pond.Location) ? "" : " · " + pond.Location)
+                                </div>
+                            </td>
+                            <td class="num">@pond.AreaDecimal.ToString("N1") <span class="text-faint">dec</span></td>
+                            <td class="num">@pond.DepthMetre.ToString("N1") <span class="text-faint">m</span></td>
+                            <td><span class="aq-badge aq-badge-neutral">@pond.WaterType</span></td>
+                            <td class="num">
+                                @pond.FishCount.ToString("N0")
+                                @if (pond.ActiveBatches > 0)
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@pond.ActiveBatches batch(es)</div>
+                                }
+                            </td>
+                            <td class="num">@pond.BiomassKg.ToString("N1") <span class="text-faint">kg</span></td>
+                            <td class="num">
+                                @(pond.StockingDensity > 0 ? pond.StockingDensity.ToString("N0") : "-")
+                                <span class="text-faint">/dec</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="aq-badge aq-badge-@statusTone">@pond.Status</span>
+                            </td>
+                            <td class="aq-row-actions">
+                                <a class="btn btn-icon" asp-action="Details" asp-route-id="@pond.Id" title="Open">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = pond.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = pond.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-pond-table", routeValues)" />
+    }
+</div>

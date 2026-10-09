@@ -1,0 +1,228 @@
+@model FishStockDetailsViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = $"{Model.Batch.FishType?.Name} in {Model.Batch.Pond?.Name}";
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var canRecord = canManage || User.IsInRole(Roles.Worker);
+    var batch = Model.Batch;
+}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>All batches
+    </a>
+
+    @if (canRecord && batch.Status == StockStatus.Active)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("GrowthForm", new { fishStockId = batch.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-rulers me-1"></i>Growth sample
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("MortalityForm", new { fishStockId = batch.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-exclamation-triangle me-1"></i>Mortality
+        </button>
+    }
+    @if (canManage && batch.Status == StockStatus.Active)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("HarvestForm", new { fishStockId = batch.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-basket2 me-1"></i>Harvest
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("AdjustmentForm", new { fishStockId = batch.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-sliders me-1"></i>Adjust
+        </button>
+    }
+    @if (canManage)
+    {
+        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto"
+                hx-get="@Url.Action("Form", new { id = batch.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-pencil me-1"></i>Edit batch
+        </button>
+    }
+</div>
+
+<div class="row g-3">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Live Fish", Value = batch.CurrentQuantity.ToString("N0"),
+            Meta = "Stocked " + batch.InitialQuantity.ToString("N0"),
+            Icon = "bi-water", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Survival", Value = Model.SurvivalPercent.ToString("N1") + "%",
+            Meta = Model.TotalDead.ToString("N0") + " lost",
+            Icon = "bi-heart-pulse",
+            Tone = Model.SurvivalPercent >= 90 ? "success" : Model.SurvivalPercent >= 75 ? "warning" : "danger" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Average Weight", Value = batch.CurrentAvgWeightGram.ToString("N0") + " g",
+            Meta = "From " + batch.InitialAvgWeightGram.ToString("N0") + " g at stocking",
+            Icon = "bi-rulers", Tone = "accent" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Biomass", Value = batch.BiomassKg.ToString("N1") + " kg",
+            Meta = "Harvested " + Model.HarvestedKg.ToString("N1") + " kg",
+            Icon = "bi-box-seam", Tone = "primary" })" />
+    </div>
+</div>
+
+<div class="row g-3 mt-0">
+    <div class="col-lg-7">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Growth trend</h2></div>
+            <div class="aq-card-body">
+                @if (Model.GrowthRecords.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-icon"><i class="bi bi-graph-up"></i></div>
+                        <div class="aq-empty-text">No growth samples recorded yet.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="aq-chart-wrap"><canvas id="chart-growth"></canvas></div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Batch details</h2></div>
+            <div class="aq-card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted-2 fw-normal">Batch code</dt>
+                    <dd class="col-7">@(batch.BatchCode ?? "-")</dd>
+
+                    <dt class="col-5 text-muted-2 fw-normal">Stocked on</dt>
+                    <dd class="col-7">@batch.StockDate.ToString("dd MMM yyyy")</dd>
+
+                    <dt class="col-5 text-muted-2 fw-normal">Days in pond</dt>
+                    <dd class="col-7">@(DateOnly.FromDateTime(DateTime.Today).DayNumber - batch.StockDate.DayNumber)</dd>
+
+                    <dt class="col-5 text-muted-2 fw-normal">Source</dt>
+                    <dd class="col-7">@(batch.Source ?? "-")</dd>
+
+                    <dt class="col-5 text-muted-2 fw-normal">Cost per fish</dt>
+                    <dd class="col-7">@batch.UnitCost.ToString("N2")</dd>
+
+                    <dt class="col-5 text-muted-2 fw-normal">Stocking cost</dt>
+                    <dd class="col-7 fw-semibold">@batch.TotalStockingCost.ToString("N2")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-0">
+    <div class="col-lg-6">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Mortality history</h2></div>
+            @if (Model.MortalityRecords.Count == 0)
+            {
+                <div class="aq-empty py-4"><div class="aq-empty-text">No mortality recorded.</div></div>
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr><th>Date</th><th class="text-end">Qty</th><th>Cause</th><th class="text-end">Loss</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in Model.MortalityRecords)
+                            {
+                                <tr>
+                                    <td>@record.RecordDate.ToString("dd MMM yyyy")</td>
+                                    <td class="num">@record.Quantity.ToString("N0")</td>
+                                    <td>@record.Cause</td>
+                                    <td class="num">@record.EstimatedLoss.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Harvest history</h2></div>
+            @if (Model.Harvests.Count == 0)
+            {
+                <div class="aq-empty py-4"><div class="aq-empty-text">Nothing harvested yet.</div></div>
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr><th>Date</th><th class="text-end">Pieces</th><th class="text-end">Weight</th><th class="text-end">Avg Wt</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var harvest in Model.Harvests)
+                            {
+                                <tr>
+                                    <td>@harvest.HarvestDate.ToString("dd MMM yyyy")</td>
+                                    <td class="num">@harvest.Quantity.ToString("N0")</td>
+                                    <td class="num">@harvest.TotalWeightKg.ToString("N2") kg</td>
+                                    <td class="num">@harvest.AvgWeightGram.ToString("N0") g</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.Adjustments.Count > 0)
+{
+    <div class="aq-card mt-3">
+        <div class="aq-card-header"><h2 class="aq-card-title">Stock adjustments</h2></div>
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr><th>Date</th><th class="text-end">Change</th><th>Reason</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var adjustment in Model.Adjustments)
+                    {
+                        <tr>
+                            <td>@adjustment.AdjustmentDate.ToString("dd MMM yyyy")</td>
+                            <td class="num @(adjustment.QuantityDelta < 0 ? "text-danger" : "text-success")">
+                                @(adjustment.QuantityDelta > 0 ? "+" : "")@adjustment.QuantityDelta.ToString("N0")
+                            </td>
+                            <td>@adjustment.Reason</td>
+                            <td class="text-muted-2">@adjustment.Notes</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var points = @Json.Serialize(Model.GrowthTrend.Select(g => new {
+                label = g.RecordDate.ToString("dd MMM"),
+                value = g.AvgWeightGram
+            }));
+
+            if (!points.length) return;
+
+            AquaTrack.chart('chart-growth', 'line',
+                points.map(function (p) { return p.label; }),
+                [{ label: 'Average weight (g)', data: points.map(function (p) { return p.value; }) }],
+                { plugins: { legend: { display: false } } });
+        })();
+    </script>
+}

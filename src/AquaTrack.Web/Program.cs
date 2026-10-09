@@ -1,3 +1,5 @@
+using AquaTrack.Application;
+using AquaTrack.Application.Common.Interfaces;
 using AquaTrack.Infrastructure;
 using AquaTrack.Infrastructure.Identity;
 using AquaTrack.Infrastructure.Persistence.Seed;
@@ -10,10 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 // QuestPDF's community licence covers this project; it must be set before any PDF is produced.
 QuestPDF.Settings.License = LicenseType.Community;
 
+// Composition root: the layers are wired here and nowhere else.
+builder.Services.AddAquaTrackApplication();
 builder.Services.AddAquaTrackInfrastructure(builder.Configuration);
 
-builder.Services.AddControllersWithViews(options => options.Filters.Add<AuditUserFilter>());
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+builder.Services.AddControllersWithViews();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

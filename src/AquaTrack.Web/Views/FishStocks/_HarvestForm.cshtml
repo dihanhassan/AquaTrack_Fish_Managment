@@ -1,0 +1,52 @@
+@model HarvestFormViewModel
+<partial name="_ModalHeader" model="@("Record harvest")" />
+
+<form hx-post="@Url.Action("SaveHarvest")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="FishStockId" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <p class="text-muted-2 small">
+            This records fish leaving the pond. Record the sale separately under Sales, or use
+            Daily Input to do both at once.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="HarvestDate" class="form-label"></label>
+                <input asp-for="HarvestDate" class="form-control" type="date" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Quantity" class="form-label">Quantity <span class="req">*</span></label>
+                <div class="input-group">
+                    <input asp-for="Quantity" class="form-control" type="number" min="1" autofocus />
+                    <span class="input-group-text">pcs</span>
+                </div>
+                <span asp-validation-for="Quantity" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="TotalWeightKg" class="form-label">Total weight <span class="req">*</span></label>
+                <div class="input-group">
+                    <input asp-for="TotalWeightKg" class="form-control" type="number" step="0.01" min="0.01" />
+                    <span class="input-group-text">kg</span>
+                </div>
+                <span asp-validation-for="TotalWeightKg" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ExpectedUnitPrice" class="form-label"></label>
+                <div class="input-group">
+                    <input asp-for="ExpectedUnitPrice" class="form-control" type="number" step="0.01" min="0" />
+                    <span class="input-group-text">/kg</span>
+                </div>
+            </div>
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record harvest")" />
+</form>

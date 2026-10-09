@@ -1,0 +1,162 @@
+@model PondDetailsViewModel
+@{
+    ViewData["Title"] = Model.Pond.Name;
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>All ponds
+    </a>
+    @if (canManage)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("Form", new { id = Model.Pond.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-pencil me-1"></i>Edit pond
+        </button>
+    }
+    <a class="btn btn-primary btn-sm ms-auto" asp-controller="DailyInput" asp-action="Index"
+       asp-route-pondId="@Model.Pond.Id">
+        <i class="bi bi-calendar-check me-1"></i>Record today
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Live Fish", Value = Model.TotalFish.ToString("N0"),
+            Meta = Model.ActiveBatches.Count() + " active batch(es)",
+            Icon = "bi-water", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Biomass", Value = Model.TotalBiomassKg.ToString("N1") + " kg",
+            Meta = Model.Pond.AreaDecimal.ToString("N1") + " decimal pond",
+            Icon = "bi-box-seam", Tone = "accent" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Feed This Month", Value = Model.FeedThisMonth.ToString("N1") + " kg",
+            Meta = "Cost " + Model.FeedCostThisMonth.ToString("N0"),
+            Icon = "bi-basket", Tone = "warning" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Medicine This Month", Value = Model.MedicineCostThisMonth.ToString("N0"),
+            Meta = "Treatment cost", Icon = "bi-capsule", Tone = "danger" })" />
+    </div>
+</div>
+
+<div class="row g-3 mt-0">
+    <div class="col-lg-8">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Fish batches</h2>
+                <a class="ms-auto small" asp-controller="FishStocks" asp-action="Index"
+                   asp-route-pondId="@Model.Pond.Id">Manage</a>
+            </div>
+            @if (Model.Batches.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+                    Icon = "bi-box-seam",
+                    Title = "No batches stocked",
+                    Message = "Stock this pond to begin tracking growth and feeding." })" />
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr>
+                                <th>Batch</th>
+                                <th>Species</th>
+                                <th>Stocked</th>
+                                <th class="text-end">Initial</th>
+                                <th class="text-end">Current</th>
+                                <th class="text-end">Avg Wt</th>
+                                <th class="text-end">Biomass</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var batch in Model.Batches)
+                            {
+                                var tone = batch.Status switch
+                                {
+                                    StockStatus.Active => "success",
+                                    StockStatus.FullyHarvested => "info",
+                                    _ => "danger",
+                                };
+
+                                <tr>
+                                    <td>
+                                        <a asp-controller="FishStocks" asp-action="Details" asp-route-id="@batch.Id">
+                                            @(batch.BatchCode ?? $"#{batch.Id}")
+                                        </a>
+                                    </td>
+                                    <td>@(batch.FishType?.Name ?? "-")</td>
+                                    <td>@batch.StockDate.ToString("dd MMM yyyy")</td>
+                                    <td class="num">@batch.InitialQuantity.ToString("N0")</td>
+                                    <td class="num">@batch.CurrentQuantity.ToString("N0")</td>
+                                    <td class="num">@batch.CurrentAvgWeightGram.ToString("N0") g</td>
+                                    <td class="num">@batch.BiomassKg.ToString("N1") kg</td>
+                                    <td class="text-center"><span class="aq-badge aq-badge-@tone">@batch.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Water quality</h2>
+                <a class="ms-auto small" asp-controller="WaterQuality" asp-action="Index"
+                   asp-route-pondId="@Model.Pond.Id">All readings</a>
+            </div>
+            @if (Model.RecentWaterQuality.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+                    Icon = "bi-droplet-half",
+                    Title = "No readings",
+                    Message = "Record pH, temperature and dissolved oxygen to track pond health." })" />
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th class="text-end">pH</th>
+                                <th class="text-end">Temp</th>
+                                <th class="text-end">DO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reading in Model.RecentWaterQuality)
+                            {
+                                <tr>
+                                    <td>@reading.RecordDate.ToString("dd MMM")</td>
+                                    <td class="num">@(reading.Ph?.ToString("N1") ?? "-")</td>
+                                    <td class="num">@(reading.TemperatureC?.ToString("N1") ?? "-")</td>
+                                    <td class="num">@(reading.DissolvedOxygenMgL?.ToString("N1") ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Pond.Notes))
+{
+    <div class="aq-card mt-3">
+        <div class="aq-card-header"><h2 class="aq-card-title">Notes</h2></div>
+        <div class="aq-card-body text-muted-2">@Model.Pond.Notes</div>
+    </div>
+}

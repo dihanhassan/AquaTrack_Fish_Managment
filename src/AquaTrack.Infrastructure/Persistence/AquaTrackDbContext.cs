@@ -1,14 +1,22 @@
 using System.Linq.Expressions;
+using AquaTrack.Application.Common.Interfaces;
 using AquaTrack.Domain.Common;
 using AquaTrack.Domain.Entities;
 using AquaTrack.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace AquaTrack.Infrastructure.Persistence;
 
-public class AquaTrackDbContext(DbContextOptions<AquaTrackDbContext> options)
-    : IdentityDbContext<ApplicationUser, ApplicationRole, string>(options)
+/// <summary>
+/// The EF Core implementation of <see cref="IApplicationDbContext"/>. Application services only
+/// ever see the interface; the provider, migrations and Identity tables stay down here.
+/// </summary>
+public class AquaTrackDbContext(
+    DbContextOptions<AquaTrackDbContext> options,
+    ICurrentUser? currentUser = null)
+    : IdentityDbContext<ApplicationUser, ApplicationRole, string>(options), IApplicationDbContext
 {
     // Farm
     public DbSet<Pond> Ponds => Set<Pond>();
@@ -31,7 +39,7 @@ public class AquaTrackDbContext(DbContextOptions<AquaTrackDbContext> options)
     public DbSet<EquipmentPart> EquipmentParts => Set<EquipmentPart>();
     public DbSet<EquipmentMaintenance> EquipmentMaintenances => Set<EquipmentMaintenance>();
 
-    // Parties & commerce
+    // Parties and commerce
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Purchase> Purchases => Set<Purchase>();
@@ -45,7 +53,7 @@ public class AquaTrackDbContext(DbContextOptions<AquaTrackDbContext> options)
     public DbSet<OtherIncome> OtherIncomes => Set<OtherIncome>();
     public DbSet<CashTransaction> CashTransactions => Set<CashTransaction>();
 
-    // Ops & AI
+    // Operations and AI
     public DbSet<DailyLog> DailyLogs => Set<DailyLog>();
     public DbSet<AiRecommendation> AiRecommendations => Set<AiRecommendation>();
     public DbSet<Notification> Notifications => Set<Notification>();
@@ -62,7 +70,7 @@ public class AquaTrackDbContext(DbContextOptions<AquaTrackDbContext> options)
 
     /// <summary>
     /// Keeps column shapes consistent without repeating attributes on 30-odd entities:
-    /// money at (18,2), quantities at (18,3), and no cascading deletes anywhere.
+    /// money at (18,2), quantities at (18,3), and no cascading deletes by default.
     /// </summary>
     private static void ApplySharedConventions(ModelBuilder builder)
     {
@@ -114,31 +122,49 @@ public class AquaTrackDbContext(DbContextOptions<AquaTrackDbContext> options)
         return base.SaveChangesAsync(cancellationToken);
     }
 
-    /// <summary>Set by the web layer per request so audit columns record who made the change.</summary>
-    public string? CurrentUser { get; set; }
+    public async Task<IDatabaseTransaction> BeginTransactionAsync(CancellationToken ct = default)
+        => new EfDatabaseTransaction(await Database.BeginTransactionAsync(ct));
 
+    /// <summary>
+    /// Fills audit columns and converts hard deletes into soft deletes, so history and reports
+    /// survive a delete and every row records who last touched it.
+    /// </summary>
     private void StampAudit()
     {
+        var now = DateTime.UtcNow;
+        var user = currentUser?.UserName;
+
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedAtUtc = DateTime.UtcNow;
-                    entry.Entity.CreatedBy ??= CurrentUser;
+                    entry.Entity.CreatedAtUtc = now;
+                    entry.Entity.CreatedBy ??= user;
                     break;
+
                 case EntityState.Modified:
-                    entry.Entity.UpdatedAtUtc = DateTime.UtcNow;
-                    entry.Entity.UpdatedBy = CurrentUser;
+                    entry.Entity.UpdatedAtUtc = now;
+                    entry.Entity.UpdatedBy = user;
                     break;
+
                 case EntityState.Deleted:
-                    // Turn hard deletes into soft deletes so history and reports stay intact.
                     entry.State = EntityState.Modified;
                     entry.Entity.IsDeleted = true;
-                    entry.Entity.DeletedAtUtc = DateTime.UtcNow;
-                    entry.Entity.UpdatedBy = CurrentUser;
+                    entry.Entity.DeletedAtUtc = now;
+                    entry.Entity.UpdatedBy = user;
                     break;
             }
         }
     }
+}
+
+/// <summary>Adapts an EF Core transaction to the application layer's abstraction.</summary>
+internal sealed class EfDatabaseTransaction(IDbContextTransaction transaction) : IDatabaseTransaction
+{
+    public Task CommitAsync(CancellationToken ct = default) => transaction.CommitAsync(ct);
+
+    public Task RollbackAsync(CancellationToken ct = default) => transaction.RollbackAsync(ct);
+
+    public ValueTask DisposeAsync() => transaction.DisposeAsync();
 }

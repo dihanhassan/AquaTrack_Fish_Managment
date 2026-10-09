@@ -1,0 +1,40 @@
+@model MortalityFormViewModel
+<partial name="_ModalHeader" model="@("Record mortality")" />
+
+<form hx-post="@Url.Action("SaveMortality")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="FishStockId" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="RecordDate" class="form-label"></label>
+                <input asp-for="RecordDate" class="form-control" type="date" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Quantity" class="form-label">Quantity <span class="req">*</span></label>
+                <div class="input-group">
+                    <input asp-for="Quantity" class="form-control" type="number" min="1" autofocus />
+                    <span class="input-group-text">pcs</span>
+                </div>
+                <span asp-validation-for="Quantity" class="field-validation-error"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Cause" class="form-label"></label>
+                <select asp-for="Cause" class="form-select" asp-items="Html.GetEnumSelectList<MortalityCause>()"></select>
+                <div class="form-text">
+                    Recording the cause lets the system spot a disease outbreak early.
+                </div>
+            </div>
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"
+                          placeholder="Water looked cloudy, fish gasping at the surface"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record mortality")" />
+</form>

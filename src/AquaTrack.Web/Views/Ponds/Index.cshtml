@@ -1,0 +1,50 @@
+@model PondListViewModel
+@{
+    ViewData["Title"] = "Ponds";
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div class="flex-grow-1" style="max-width:300px">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Search name, code or location"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-pond-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[data-pond-filter]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div>
+            <select name="status" class="form-select form-select-sm" data-pond-filter
+                    hx-get="@Url.Action("List")"
+                    hx-target="#aq-pond-table"
+                    hx-swap="outerHTML"
+                    hx-include="[name=search]"
+                    hx-push-url="true">
+                <option value="">All statuses</option>
+                @foreach (var status in Enum.GetValues<PondStatus>())
+                {
+                    <option value="@status" selected="@(Model.StatusFilter == status.ToString())">@status</option>
+                }
+            </select>
+        </div>
+
+        @if (canManage)
+        {
+            <div class="ms-auto">
+                <button type="button" class="btn btn-primary btn-sm"
+                        hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                    <i class="bi bi-plus-lg me-1"></i>Add pond
+                </button>
+            </div>
+        }
+    </div>
+
+    @* The table is its own partial so search, sort and paging swap only this region. *@
+    <partial name="_Table" model="Model" />
+</div>

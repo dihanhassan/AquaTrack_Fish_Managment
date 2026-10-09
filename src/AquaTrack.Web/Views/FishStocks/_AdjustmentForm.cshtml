@@ -1,0 +1,43 @@
+@model AdjustmentFormViewModel
+<partial name="_ModalHeader" model="@("Adjust stock")" />
+
+<form hx-post="@Url.Action("SaveAdjustment")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="FishStockId" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <p class="text-muted-2 small">
+            Use this after a physical count, a transfer between ponds, or to correct a data entry
+            mistake. The adjustment is kept as its own record so the history stays honest.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="AdjustmentDate" class="form-label"></label>
+                <input asp-for="AdjustmentDate" class="form-control" type="date" />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="QuantityDelta" class="form-label">Adjustment <span class="req">*</span></label>
+                <div class="input-group">
+                    <input asp-for="QuantityDelta" class="form-control" type="number" autofocus />
+                    <span class="input-group-text">pcs</span>
+                </div>
+                <div class="form-text">Negative removes fish, positive adds them.</div>
+                <span asp-validation-for="QuantityDelta" class="field-validation-error"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Reason" class="form-label"></label>
+                <select asp-for="Reason" class="form-select"
+                        asp-items="Html.GetEnumSelectList<StockAdjustmentReason>()"></select>
+            </div>
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Apply adjustment")" />
+</form>

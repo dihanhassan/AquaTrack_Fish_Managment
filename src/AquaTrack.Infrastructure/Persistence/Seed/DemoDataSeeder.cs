@@ -1,3 +1,4 @@
+using AquaTrack.Application.Common.Models;
 using AquaTrack.Domain.Entities;
 using AquaTrack.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -35,9 +36,35 @@ public static class DemoDataSeeder
         await SeedEquipmentAsync(db, suppliers, ponds, ct);
 
         var stocks = await SeedFishStocksAsync(db, ponds, start, ct);
+        await SeedOpeningBalanceAsync(db, start, ct);
         await SeedDailyActivityAsync(db, ponds, stocks, feedItems, medicines, customers, start, today, ct);
 
         logger.LogInformation("Demo data seeded: {Ponds} ponds, {Stocks} batches.", ponds.Count, stocks.Count);
+    }
+
+    /// <summary>
+    /// A farm starts with working capital. Without it the cash book would open at zero and the
+    /// first months of feed and wages would read as a large negative balance.
+    /// </summary>
+    private static async Task SeedOpeningBalanceAsync(AquaTrackDbContext db, DateOnly start, CancellationToken ct)
+    {
+        const decimal openingCapital = 1_500_000m;
+
+        // Posted as a ledger row rather than written to Finance.OpeningCashBalance: the balance
+        // calculation adds the setting to every prior movement, so doing both would double-count.
+        db.CashTransactions.Add(new CashTransaction
+        {
+            TransactionDate = start.AddDays(-1),
+            Direction = CashDirection.In,
+            Amount = openingCapital,
+            Category = "Opening balance",
+            PaymentMethod = PaymentMethod.Cash,
+            Description = "Working capital at the start of the season",
+            ReferenceType = ReferenceType.OpeningBalance,
+            IsSystemGenerated = true,
+        });
+
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task<List<Supplier>> SeedSuppliersAsync(AquaTrackDbContext db, CancellationToken ct)
@@ -282,53 +309,75 @@ public static class DemoDataSeeder
             {
                 var batch = stocks[Rng.Next(stocks.Count)];
                 var species = fishTypes[batch.FishTypeId];
-                var qtyKg = Math.Round((decimal)(40 + Rng.NextDouble() * 120), 2);
-                var price = species.Name switch
-                {
-                    "Rui" => 320m,
-                    "Katla" => 300m,
-                    "Tilapia" => 180m,
-                    "Pangas" => 150m,
-                    "Silver Carp" => 190m,
-                    _ => 250m,
-                };
 
-                price = Math.Round(price * (decimal)(0.92 + Rng.NextDouble() * 0.16), 2);
-                var total = Math.Round(qtyKg * price, 2);
-                var customer = customers[Rng.Next(customers.Count)];
-                var paid = Rng.NextDouble() < 0.75 ? total : Math.Round(total * 0.6m, 2);
+                // Sell a slice of what the batch actually holds, so a run of random sales cannot
+                // empty every pond before the demo period ends.
+                var daysIn = date.DayNumber - batch.StockDate.DayNumber;
+                var progress = Math.Min(1d, daysIn / (double)(species.GrowOutDays ?? 300));
+                var target = (double)(species.TargetWeightGram ?? 1000m);
+                var weightNow = (decimal)((double)batch.InitialAvgWeightGram
+                                          + (target - (double)batch.InitialAvgWeightGram) * progress);
 
-                invoiceSeq++;
-                sales.Add(new Sale
+                var soldSoFar = sales
+                    .SelectMany(s => s.Items)
+                    .Where(i => i.FishStockId == batch.Id)
+                    .Sum(i => i.QuantityKg);
+
+                var availableKg = batch.InitialQuantity * weightNow / 1000m - soldSoFar;
+
+                // Skip the sale rather than the whole day, so monthly overheads below still post.
+                if (availableKg >= 60m)
                 {
-                    InvoiceNo = $"INV-{date:yyyyMM}-{invoiceSeq:D4}",
-                    CustomerId = customer.Id,
-                    SaleDate = date,
-                    SubTotal = total,
-                    GrandTotal = total,
-                    PaidAmount = paid,
-                    PaymentMethod = paid >= total ? PaymentMethod.Cash : PaymentMethod.Credit,
-                    Items =
-                    [
-                        new SaleItem
-                        {
-                            FishTypeId = batch.FishTypeId,
-                            PondId = batch.PondId,
-                            FishStockId = batch.Id,
-                            QuantityKg = qtyKg,
-                            UnitPrice = price,
-                            LineTotal = total,
-                        },
-                    ],
-                });
+                    var qtyKg = Math.Round(
+                        Math.Min(availableKg * 0.08m, (decimal)(40 + Rng.NextDouble() * 120)), 2);
+
+                    var price = species.Name switch
+                    {
+                        "Rui" => 320m,
+                        "Katla" => 300m,
+                        "Tilapia" => 180m,
+                        "Pangas" => 150m,
+                        "Silver Carp" => 190m,
+                        _ => 250m,
+                    };
+
+                    price = Math.Round(price * (decimal)(0.92 + Rng.NextDouble() * 0.16), 2);
+                    var total = Math.Round(qtyKg * price, 2);
+                    var customer = customers[Rng.Next(customers.Count)];
+                    var paid = Rng.NextDouble() < 0.75 ? total : Math.Round(total * 0.6m, 2);
+
+                    invoiceSeq++;
+                    sales.Add(new Sale
+                    {
+                        InvoiceNo = $"INV-{date:yyyyMM}-{invoiceSeq:D4}",
+                        CustomerId = customer.Id,
+                        SaleDate = date,
+                        SubTotal = total,
+                        GrandTotal = total,
+                        PaidAmount = paid,
+                        PaymentMethod = paid >= total ? PaymentMethod.Cash : PaymentMethod.Credit,
+                        Items =
+                        [
+                            new SaleItem
+                            {
+                                FishTypeId = batch.FishTypeId,
+                                PondId = batch.PondId,
+                                FishStockId = batch.Id,
+                                QuantityKg = qtyKg,
+                                UnitPrice = price,
+                                LineTotal = total,
+                            },
+                        ],
+                    });
+                }
             }
 
             // Monthly overheads on the first of each month.
             if (date.Day == 1)
             {
-                AddOverhead(expenses, cash, categories, ExpenseCategories.Labour, date, Rng.Next(18000, 26000), "Monthly wages");
-                AddOverhead(expenses, cash, categories, ExpenseCategories.Electricity, date, Rng.Next(4000, 9000), "Electricity bill");
-                AddOverhead(expenses, cash, categories, ExpenseCategories.Transport, date, Rng.Next(2000, 6000), "Transport and fuel");
+                AddOverhead(expenses, cash, categories, ExpenseCategoryNames.Labour, date, Rng.Next(18000, 26000), "Monthly wages");
+                AddOverhead(expenses, cash, categories, ExpenseCategoryNames.Electricity, date, Rng.Next(4000, 9000), "Electricity bill");
+                AddOverhead(expenses, cash, categories, ExpenseCategoryNames.Transport, date, Rng.Next(2000, 6000), "Transport and fuel");
             }
         }
 
@@ -395,7 +444,7 @@ public static class DemoDataSeeder
             var amount = Math.Round(group.Sum(u => u.TotalCost), 2);
             if (amount <= 0) continue;
 
-            AddOverhead(expenses, cash, categories, ExpenseCategories.Feed, date, amount,
+            AddOverhead(expenses, cash, categories, ExpenseCategoryNames.Feed, date, amount,
                 $"Feed consumed in {date:MMMM yyyy}");
         }
 
@@ -405,7 +454,7 @@ public static class DemoDataSeeder
             var amount = Math.Round(group.Sum(u => u.TotalCost), 2);
             if (amount <= 0) continue;
 
-            AddOverhead(expenses, cash, categories, ExpenseCategories.Medicine, date, amount,
+            AddOverhead(expenses, cash, categories, ExpenseCategoryNames.Medicine, date, amount,
                 $"Medicine used in {date:MMMM yyyy}");
         }
 

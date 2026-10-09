@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/AquaTrack.Application/AquaTrack.Application.csproj" />
     <Project Path="src/AquaTrack.Domain/AquaTrack.Domain.csproj" />
     <Project Path="src/AquaTrack.Infrastructure/AquaTrack.Infrastructure.csproj" />
     <Project Path="src/AquaTrack.Web/AquaTrack.Web.csproj" />

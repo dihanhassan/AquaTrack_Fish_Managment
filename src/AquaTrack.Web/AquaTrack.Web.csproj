@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AquaTrack.Infrastructure\AquaTrack.Infrastructure.csproj" />
     <ProjectReference Include="..\AquaTrack.Domain\AquaTrack.Domain.csproj" />
+    <ProjectReference Include="..\AquaTrack.Application\AquaTrack.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

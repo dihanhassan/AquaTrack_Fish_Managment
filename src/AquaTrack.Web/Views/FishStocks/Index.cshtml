@@ -1,0 +1,59 @@
+@model FishStockListViewModel
+@{
+    ViewData["Title"] = "Fish Stock";
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div class="flex-grow-1" style="max-width:280px">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Search pond, species or batch"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-stock-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[data-stock-filter]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div>
+            <select name="pondId" class="form-select form-select-sm" data-stock-filter
+                    hx-get="@Url.Action("List")" hx-target="#aq-stock-table" hx-swap="outerHTML"
+                    hx-include="[name=search],[name=status]" hx-push-url="true">
+                <option value="">All ponds</option>
+                @foreach (var pond in Model.Ponds)
+                {
+                    <option value="@pond.Id" selected="@(Model.PondId == pond.Id)">@pond.Name</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <select name="status" class="form-select form-select-sm" data-stock-filter
+                    hx-get="@Url.Action("List")" hx-target="#aq-stock-table" hx-swap="outerHTML"
+                    hx-include="[name=search],[name=pondId]" hx-push-url="true">
+                <option value="">All statuses</option>
+                @foreach (var status in Enum.GetValues<StockStatus>())
+                {
+                    <option value="@status" selected="@(Model.StatusFilter == status.ToString())">@status</option>
+                }
+            </select>
+        </div>
+
+        @if (canManage)
+        {
+            <div class="ms-auto">
+                <button type="button" class="btn btn-primary btn-sm"
+                        hx-get="@Url.Action("Form", new { pondId = Model.PondId })"
+                        hx-target="#aq-modal-content">
+                    <i class="bi bi-plus-lg me-1"></i>Stock a batch
+                </button>
+            </div>
+        }
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>

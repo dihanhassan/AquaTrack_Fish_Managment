@@ -1,7 +1,8 @@
 using AquaTrack.Domain.Entities;
 using AquaTrack.Domain.Enums;
 using AquaTrack.Infrastructure.Identity;
-using AquaTrack.Infrastructure.Services;
+using AquaTrack.Application.Common.Models;
+using AquaTrack.Application.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -131,16 +132,16 @@ public static class DbSeeder
         // These names are referenced by the automatic posting rules, so they must always exist.
         (string Name, string Description)[] defaults =
         [
-            (ExpenseCategories.Feed, "Fish feed purchased and consumed."),
-            (ExpenseCategories.Medicine, "Medicines, probiotics and water treatments."),
-            (ExpenseCategories.FishFry, "Fingerlings and fry purchased for stocking."),
-            (ExpenseCategories.Labour, "Wages and daily labour."),
-            (ExpenseCategories.Electricity, "Electricity and fuel bills."),
-            (ExpenseCategories.Transport, "Transport and delivery costs."),
-            (ExpenseCategories.Equipment, "Equipment and spare parts purchased."),
-            (ExpenseCategories.Maintenance, "Repairs and servicing of equipment."),
-            (ExpenseCategories.PondMaintenance, "Pond preparation, liming and excavation."),
-            (ExpenseCategories.Other, "Anything that does not fit another category."),
+            (ExpenseCategoryNames.Feed, "Fish feed purchased and consumed."),
+            (ExpenseCategoryNames.Medicine, "Medicines, probiotics and water treatments."),
+            (ExpenseCategoryNames.FishFry, "Fingerlings and fry purchased for stocking."),
+            (ExpenseCategoryNames.Labour, "Wages and daily labour."),
+            (ExpenseCategoryNames.Electricity, "Electricity and fuel bills."),
+            (ExpenseCategoryNames.Transport, "Transport and delivery costs."),
+            (ExpenseCategoryNames.Equipment, "Equipment and spare parts purchased."),
+            (ExpenseCategoryNames.Maintenance, "Repairs and servicing of equipment."),
+            (ExpenseCategoryNames.PondMaintenance, "Pond preparation, liming and excavation."),
+            (ExpenseCategoryNames.Other, "Anything that does not fit another category."),
         ];
 
         var existing = await db.ExpenseCategories.Select(c => c.Name).ToListAsync(ct);
@@ -175,19 +176,4 @@ public static class DbSeeder
 
         await db.SaveChangesAsync(ct);
     }
-}
-
-/// <summary>Names of the seeded expense categories, used by the automatic posting rules.</summary>
-public static class ExpenseCategories
-{
-    public const string Feed = "Feed";
-    public const string Medicine = "Medicine";
-    public const string FishFry = "Fish Fry";
-    public const string Labour = "Labour";
-    public const string Electricity = "Electricity";
-    public const string Transport = "Transport";
-    public const string Equipment = "Equipment";
-    public const string Maintenance = "Maintenance";
-    public const string PondMaintenance = "Pond Maintenance";
-    public const string Other = "Other";
 }

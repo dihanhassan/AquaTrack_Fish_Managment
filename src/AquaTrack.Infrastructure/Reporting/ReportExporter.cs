@@ -1,16 +1,10 @@
+using AquaTrack.Application.Reporting;
 using ClosedXML.Excel;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace AquaTrack.Infrastructure.Reporting;
-
-public interface IReportExporter
-{
-    byte[] ToPdf(ReportTable table, string farmName);
-    byte[] ToExcel(ReportTable table, string farmName);
-    byte[] ToCsv(ReportTable table);
-}
 
 /// <summary>Renders any <see cref="ReportTable"/> to PDF, Excel or CSV.</summary>
 public class ReportExporter : IReportExporter

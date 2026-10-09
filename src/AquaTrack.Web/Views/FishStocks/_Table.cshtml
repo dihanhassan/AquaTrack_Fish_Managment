@@ -1,0 +1,131 @@
+@model FishStockListViewModel
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var canRecord = canManage || User.IsInRole(Roles.Worker);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-stock-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-stock-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search)
+            ? new EmptyStateViewModel {
+                Icon = "bi-box-seam",
+                Title = "No fish batches",
+                Message = "Stock a pond to start tracking growth, feeding and mortality.",
+                ActionLabel = canManage ? "Stock a batch" : null,
+                ActionUrl = canManage ? Url.Action("Form") : null }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Pond", "pond", "start")" />
+                        <partial name="_SortHeader" model="@header("Species", "species", "start")" />
+                        <partial name="_SortHeader" model="@header("Stocked", "date", "start")" />
+                        <th class="text-end">Initial</th>
+                        <partial name="_SortHeader" model="@header("Current", "quantity", "end")" />
+                        <th class="text-end">Lost</th>
+                        <partial name="_SortHeader" model="@header("Avg Wt", "weight", "end")" />
+                        <th class="text-end">Biomass</th>
+                        <th class="text-center">Status</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var batch in Model.Page.Items)
+                    {
+                        var tone = batch.Status switch
+                        {
+                            StockStatus.Active => "success",
+                            StockStatus.FullyHarvested => "info",
+                            _ => "danger",
+                        };
+
+                        var lostPercent = batch.InitialQuantity == 0
+                            ? 0m
+                            : Math.Round((decimal)batch.TotalMortality / batch.InitialQuantity * 100, 1);
+
+                        <tr>
+                            <td>
+                                <a asp-controller="Ponds" asp-action="Details" asp-route-id="@batch.PondId">
+                                    @(batch.Pond?.Name ?? "-")
+                                </a>
+                            </td>
+                            <td>
+                                <a class="fw-semibold" asp-action="Details" asp-route-id="@batch.Id">
+                                    @(batch.FishType?.Name ?? "-")
+                                </a>
+                                @if (!string.IsNullOrWhiteSpace(batch.BatchCode))
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@batch.BatchCode</div>
+                                }
+                            </td>
+                            <td>@batch.StockDate.ToString("dd MMM yyyy")</td>
+                            <td class="num">@batch.InitialQuantity.ToString("N0")</td>
+                            <td class="num fw-semibold">@batch.CurrentQuantity.ToString("N0")</td>
+                            <td class="num">
+                                @batch.TotalMortality.ToString("N0")
+                                <div class="text-faint" style="font-size:.74rem">@lostPercent.ToString("N1")%</div>
+                            </td>
+                            <td class="num">@batch.CurrentAvgWeightGram.ToString("N0") g</td>
+                            <td class="num">@batch.BiomassKg.ToString("N1") kg</td>
+                            <td class="text-center"><span class="aq-badge aq-badge-@tone">@batch.Status</span></td>
+                            <td class="aq-row-actions">
+                                @if (canRecord && batch.Status == StockStatus.Active)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record growth sample"
+                                            hx-get="@Url.Action("GrowthForm", new { fishStockId = batch.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-rulers"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon" title="Record mortality"
+                                            hx-get="@Url.Action("MortalityForm", new { fishStockId = batch.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                    </button>
+                                }
+                                @if (canManage && batch.Status == StockStatus.Active)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record harvest"
+                                            hx-get="@Url.Action("HarvestForm", new { fishStockId = batch.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-basket2"></i>
+                                    </button>
+                                }
+                                <a class="btn btn-icon" asp-action="Details" asp-route-id="@batch.Id" title="Open">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = batch.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-stock-table", routeValues)" />
+    }
+</div>

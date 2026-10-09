@@ -1,0 +1,69 @@
+@model PondFormViewModel
+@*
+    The create/edit dialog. Posts to Save with hx-post; a 204 closes the modal and
+    refreshes the table, a 422 re-renders this partial with validation messages.
+*@
+<partial name="_ModalHeader" model="@(Model.IsEdit ? "Edit pond" : "Add pond")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label asp-for="Name" class="form-label">Pond name <span class="req">*</span></label>
+                <input asp-for="Name" class="form-control" placeholder="Pond-01" autofocus />
+                <span asp-validation-for="Name" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Code" class="form-label"></label>
+                <input asp-for="Code" class="form-control" placeholder="P01" />
+                <span asp-validation-for="Code" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="AreaDecimal" class="form-label">Area <span class="req">*</span></label>
+                <div class="input-group">
+                    <input asp-for="AreaDecimal" class="form-control" type="number" step="0.01" min="0.01" />
+                    <span class="input-group-text">dec</span>
+                </div>
+                <span asp-validation-for="AreaDecimal" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DepthMetre" class="form-label">Depth <span class="req">*</span></label>
+                <div class="input-group">
+                    <input asp-for="DepthMetre" class="form-control" type="number" step="0.1" min="0.1" />
+                    <span class="input-group-text">m</span>
+                </div>
+                <span asp-validation-for="DepthMetre" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="WaterType" class="form-label"></label>
+                <select asp-for="WaterType" class="form-select" asp-items="Html.GetEnumSelectList<WaterType>()"></select>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<PondStatus>()"></select>
+            </div>
+            <div class="col-md-8">
+                <label asp-for="Location" class="form-label"></label>
+                <input asp-for="Location" class="form-control" placeholder="North block" />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="CommissionedOn" class="form-label"></label>
+                <input asp-for="CommissionedOn" class="form-control" type="date" />
+            </div>
+            <div class="col-md-8">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@(Model.IsEdit ? "Save changes" : "Add pond")" />
+</form>

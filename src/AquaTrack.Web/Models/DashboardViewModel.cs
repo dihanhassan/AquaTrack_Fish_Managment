@@ -1,5 +1,5 @@
 using AquaTrack.Domain.Entities;
-using AquaTrack.Infrastructure.Services;
+using AquaTrack.Application.Services;
 
 namespace AquaTrack.Web.Models;
 

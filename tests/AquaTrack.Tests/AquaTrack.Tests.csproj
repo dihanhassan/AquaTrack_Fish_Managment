@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\AquaTrack.Infrastructure\AquaTrack.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\AquaTrack.Domain\AquaTrack.Domain.csproj" />
     <ProjectReference Include="..\..\src\AquaTrack.Web\AquaTrack.Web.csproj" />
+    <ProjectReference Include="..\..\src\AquaTrack.Application\AquaTrack.Application.csproj" />
   </ItemGroup>
 
 </Project>
