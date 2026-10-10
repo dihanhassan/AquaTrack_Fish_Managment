@@ -621,11 +621,32 @@ a.aq-stat:hover {
 
 /* -------------------------------------------------------------- modal ---- */
 
-.modal-content { border: 0; border-radius: var(--aq-radius); box-shadow: var(--aq-shadow-lg); }
-.modal-header { border-bottom: 1px solid var(--aq-border); padding: .85rem 1.1rem; }
-.modal-title { font-size: .98rem; font-weight: 600; }
-.modal-body { padding: 1.1rem; }
-.modal-footer { border-top: 1px solid var(--aq-border); padding: .75rem 1.1rem; background: #fafbfd; }
+/* Background AND text color are spelled out on every section rather than left to
+   Bootstrap's --bs-modal-bg / inherited color. Relying on the variable is what let a
+   dialog render as scattered, see-through fragments for some users — most likely a
+   browser "force dark mode" feature or extension (Dark Reader and similar) repainting
+   backgrounds it can't resolve, since a modal overlay is exactly the kind of element
+   those heuristics single out. Hardcoding both properties here means nothing upstream
+   can leave this white card unpainted. */
+.modal-content { background: var(--aq-surface); color: var(--aq-ink); border: 0; border-radius: var(--aq-radius); box-shadow: var(--aq-shadow-lg); }
+.modal-header { background: var(--aq-surface); color: var(--aq-ink); border-bottom: 1px solid var(--aq-border); padding: .85rem 1.1rem; }
+.modal-title { font-size: .98rem; font-weight: 600; color: var(--aq-ink); }
+.modal-body { background: var(--aq-surface); color: var(--aq-ink); padding: 1.1rem; }
+.modal-footer { background: #fafbfd; color: var(--aq-ink); border-top: 1px solid var(--aq-border); padding: .75rem 1.1rem; }
+.modal-backdrop { background-color: #081420; }
+.modal-backdrop.show { opacity: .6; }
+
+/* ----------------------------------------------------------- dropdown ---- */
+
+/* Same problem, same fix as the modal above: the notification bell panel and the
+   topbar user menu are both plain Bootstrap .dropdown-menu panels with no background
+   of their own, so they were just as exposed to being left unpainted. */
+.dropdown-menu { background: var(--aq-surface); color: var(--aq-ink); border: 1px solid var(--aq-border); border-radius: var(--aq-radius); box-shadow: var(--aq-shadow-lg); }
+.dropdown-item { background: transparent; color: var(--aq-ink); }
+.dropdown-item:hover, .dropdown-item:focus { background: var(--aq-canvas); color: var(--aq-ink); }
+.dropdown-item.active, .dropdown-item:active { background: var(--aq-primary-light); color: var(--aq-primary-dark); }
+.dropdown-item.text-danger:hover, .dropdown-item.text-danger:focus { background: var(--aq-danger-light); color: var(--aq-danger); }
+.dropdown-divider { border-top: 1px solid var(--aq-border); }
 
 /* --------------------------------------------------------- misc / print -- */
 
