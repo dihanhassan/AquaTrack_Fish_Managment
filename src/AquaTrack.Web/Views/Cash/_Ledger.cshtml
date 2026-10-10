@@ -1,0 +1,109 @@
+@model CashBookViewModel
+<div id="aq-cash-ledger"
+     hx-get="@Url.Action("Ledger", new { from = Model.From.ToString("yyyy-MM-dd"), to = Model.To.ToString("yyyy-MM-dd") })"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Rows.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+            Icon = "bi-cash-stack",
+            Title = "No cash movement in this period",
+            Message = "Widen the date range, or record an entry. Sales, purchases and expenses post here automatically.",
+            ActionLabel = "Add entry",
+            ActionUrl = Url.Action("Form") })" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th class="text-center">Method</th>
+                        <th class="text-end">Cash in</th>
+                        <th class="text-end">Cash out</th>
+                        <th class="text-end">Balance</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="table-light">
+                        <td colspan="6" class="fw-semibold">Opening balance</td>
+                        <td class="num fw-semibold">@Model.Summary.OpeningBalance.ToString("N2")</td>
+                        <td></td>
+                    </tr>
+
+                    @foreach (var row in Model.Rows)
+                    {
+                        var tx = row.Transaction;
+                        var isIn = tx.Direction == CashDirection.In;
+
+                        <tr>
+                            <td>@tx.TransactionDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="aq-badge aq-badge-@(isIn ? "success" : "neutral")">@tx.Category</span>
+                            </td>
+                            <td>
+                                @(tx.Description ?? "-")
+                                @if (tx.Customer is not null)
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@tx.Customer.Name</div>
+                                }
+                                else if (tx.Supplier is not null)
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@tx.Supplier.Name</div>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="text-muted-2" style="font-size:.78rem">@tx.PaymentMethod</span>
+                            </td>
+                            <td class="num text-success">@(isIn ? tx.Amount.ToString("N2") : "")</td>
+                            <td class="num text-danger">@(isIn ? "" : tx.Amount.ToString("N2"))</td>
+                            <td class="num fw-semibold @(row.RunningBalance < 0 ? "text-danger" : "")">
+                                @row.RunningBalance.ToString("N2")
+                            </td>
+                            <td class="aq-row-actions">
+                                @if (!tx.IsSystemGenerated)
+                                {
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = tx.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-faint" style="font-size:.72rem" title="Posted by another document">
+                                        <i class="bi bi-link-45deg"></i>
+                                    </span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4">Totals for the period</td>
+                        <td class="num text-success">@Model.Summary.TotalIn.ToString("N2")</td>
+                        <td class="num text-danger">@Model.Summary.TotalOut.ToString("N2")</td>
+                        <td class="num">@Model.Summary.ClosingBalance.ToString("N2")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="aq-pager">
+            <span>
+                <strong>@Model.Rows.Count</strong> entries &middot;
+                <span class="text-faint">@Model.BalanceEquation</span>
+            </span>
+            <span class="fw-semibold @(Model.Summary.Net >= 0 ? "text-success" : "text-danger")">
+                Net @Model.Summary.Net.ToString("N2")
+            </span>
+        </div>
+    }
+</div>

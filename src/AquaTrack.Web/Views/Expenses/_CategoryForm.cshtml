@@ -1,0 +1,39 @@
+@model ExpenseCategoryFormViewModel
+<partial name="_ModalHeader" model="@(Model.IsEdit ? "Edit category" : "Add category")" />
+
+<form hx-post="@Url.Action("SaveCategory")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        @if (Model.IsSystem)
+        {
+            <div class="alert alert-light border py-2 px-3 small mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                This is a built-in category used by the automatic posting rules. You can rename it
+                or deactivate it, but it cannot be deleted.
+            </div>
+        }
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label">Category name <span class="req">*</span></label>
+            <input asp-for="Name" class="form-control" autofocus />
+            <span asp-validation-for="Name" class="field-validation-error"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+        </div>
+
+        <div class="form-check">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label"></label>
+            <div class="form-text">Inactive categories are hidden when recording a new expense.</div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@(Model.IsEdit ? "Save changes" : "Add category")" />
+</form>

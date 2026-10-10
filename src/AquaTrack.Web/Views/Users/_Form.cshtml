@@ -1,0 +1,71 @@
+@model UserFormViewModel
+<partial name="_ModalHeader" model="@(Model.IsEdit ? "Edit user" : "Add user")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label asp-for="FullName" class="form-label">Full name <span class="req">*</span></label>
+                <input asp-for="FullName" class="form-control" autofocus />
+                <span asp-validation-for="FullName" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Designation" class="form-label"></label>
+                <input asp-for="Designation" class="form-control" placeholder="Pond supervisor" />
+            </div>
+
+            <div class="col-md-7">
+                <label asp-for="Email" class="form-label">Email <span class="req">*</span></label>
+                <input asp-for="Email" class="form-control" type="email" autocomplete="off" />
+                <span asp-validation-for="Email" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="PhoneNumber" class="form-label"></label>
+                <input asp-for="PhoneNumber" class="form-control" />
+                <span asp-validation-for="PhoneNumber" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-12"><div class="aq-form-section">Access</div></div>
+
+            <div class="col-12">
+                <label class="form-label">Role <span class="req">*</span></label>
+                @foreach (var (name, description) in UserFormViewModel.RoleChoices)
+                {
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" asp-for="Role" value="@name" id="role-@name" />
+                        <label class="form-check-label" for="role-@name">
+                            <span class="fw-semibold">@name</span>
+                            <div class="text-muted-2" style="font-size:.78rem">@description</div>
+                        </label>
+                    </div>
+                }
+            </div>
+
+            <div class="col-md-7">
+                <label asp-for="Password" class="form-label">
+                    Password @if (!Model.IsEdit) { <span class="req">*</span> }
+                </label>
+                <input asp-for="Password" class="form-control" type="password" autocomplete="new-password" />
+                <div class="form-text">
+                    @(Model.IsEdit ? "Leave blank to keep the current password." : "At least 8 characters.")
+                </div>
+                <span asp-validation-for="Password" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-md-5 d-flex align-items-center">
+                <div class="form-check mt-3">
+                    <input asp-for="IsActive" class="form-check-input" />
+                    <label asp-for="IsActive" class="form-check-label"></label>
+                    <div class="form-text">Turning this off blocks sign-in without deleting anything.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@(Model.IsEdit ? "Save changes" : "Create user")" />
+</form>

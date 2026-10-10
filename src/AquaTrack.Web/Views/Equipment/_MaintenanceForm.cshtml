@@ -1,0 +1,65 @@
+@model MaintenanceFormViewModel
+<partial name="_ModalHeader" model="@("Record maintenance")" />
+
+<form hx-post="@Url.Action("SaveMaintenance")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="EquipmentId" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <p class="text-muted-2 small">
+            Any cost entered here is posted as a maintenance expense and paid from the cash book,
+            so upkeep shows in the accounts rather than disappearing.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="MaintenanceDate" class="form-label"></label>
+                <input asp-for="MaintenanceDate" class="form-control" type="date" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="MaintenanceType" class="form-label"></label>
+                <select asp-for="MaintenanceType" class="form-select"
+                        asp-items="Html.GetEnumSelectList<MaintenanceType>()"></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Cost" class="form-label"></label>
+                <input asp-for="Cost" class="form-control" type="number" step="0.01" min="0" autofocus />
+                <span asp-validation-for="Cost" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Description" class="form-label"></label>
+                <input asp-for="Description" class="form-control" placeholder="Oil change and impeller cleaning" />
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="PerformedBy" class="form-label"></label>
+                <input asp-for="PerformedBy" class="form-control" placeholder="Local mechanic" />
+            </div>
+            <div class="col-md-4">
+                <label asp-for="NextDueDate" class="form-label"></label>
+                <input asp-for="NextDueDate" class="form-control" type="date" />
+                <div class="form-text">An alert fires a week before.</div>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="ConditionAfter" class="form-label"></label>
+                <select asp-for="ConditionAfter" class="form-select">
+                    <option value="">Leave unchanged</option>
+                    @foreach (var condition in Enum.GetValues<EquipmentCondition>())
+                    {
+                        <option value="@condition" selected="@(Model.ConditionAfter == condition)">@condition</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record maintenance")" />
+</form>

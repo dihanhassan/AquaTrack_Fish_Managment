@@ -1,0 +1,64 @@
+@model ExpenseFormViewModel
+<partial name="_ModalHeader" model="@(Model.IsEdit ? "Edit expense" : "Add expense")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label asp-for="ExpenseCategoryId" class="form-label">Category <span class="req">*</span></label>
+                <select asp-for="ExpenseCategoryId" class="form-select">
+                    <option value="0">Choose a category</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id" selected="@(Model.ExpenseCategoryId == category.Id)">@category.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="ExpenseCategoryId" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="ExpenseDate" class="form-label"></label>
+                <input asp-for="ExpenseDate" class="form-control" type="date"
+                       max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="ExpenseDate" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-md-5">
+                <label asp-for="Amount" class="form-label">Amount <span class="req">*</span></label>
+                <input asp-for="Amount" class="form-control" type="number" step="0.01" min="0.01" autofocus />
+                <span asp-validation-for="Amount" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="PaymentMethod" class="form-label"></label>
+                <select asp-for="PaymentMethod" class="form-select"
+                        asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="VoucherNo" class="form-label"></label>
+                <input asp-for="VoucherNo" class="form-control" />
+            </div>
+
+            <div class="col-md-5">
+                <label asp-for="PondId" class="form-label"></label>
+                <select asp-for="PondId" class="form-select">
+                    <option value="">Not pond-specific</option>
+                    @foreach (var pond in Model.Ponds)
+                    {
+                        <option value="@pond.Id" selected="@(Model.PondId == pond.Id)">@pond.Name</option>
+                    }
+                </select>
+                <div class="form-text">Attributing a cost to a pond makes per-pond reporting possible.</div>
+            </div>
+            <div class="col-md-7">
+                <label asp-for="Description" class="form-label"></label>
+                <input asp-for="Description" class="form-control" placeholder="Wages for 3 labourers" />
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@(Model.IsEdit ? "Save changes" : "Record expense")" />
+</form>

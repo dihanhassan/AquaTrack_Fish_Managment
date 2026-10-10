@@ -1,0 +1,63 @@
+@model CashEntryFormViewModel
+<partial name="_ModalHeader" model="@("Add cash entry")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <p class="text-muted-2 small">
+            For cash movement that no other document covers: an owner withdrawal, a loan, a
+            correction. Sales, purchases and expenses post here on their own.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Direction" class="form-label"></label>
+                <select asp-for="Direction" class="form-select">
+                    <option value="@((int)CashDirection.In)">Cash in (money received)</option>
+                    <option value="@((int)CashDirection.Out)" selected>Cash out (money paid)</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="TransactionDate" class="form-label"></label>
+                <input asp-for="TransactionDate" class="form-control" type="date"
+                       max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="TransactionDate" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Amount" class="form-label">Amount <span class="req">*</span></label>
+                <input asp-for="Amount" class="form-control" type="number" step="0.01" min="0.01" autofocus />
+                <span asp-validation-for="Amount" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Category" class="form-label">Category <span class="req">*</span></label>
+                <input asp-for="Category" class="form-control" list="aq-cash-categories"
+                       placeholder="Owner withdrawal" />
+                <datalist id="aq-cash-categories">
+                    <option value="Owner withdrawal"></option>
+                    <option value="Owner investment"></option>
+                    <option value="Loan received"></option>
+                    <option value="Loan repayment"></option>
+                    <option value="Bank deposit"></option>
+                    <option value="Correction"></option>
+                </datalist>
+                <span asp-validation-for="Category" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="PaymentMethod" class="form-label"></label>
+                <select asp-for="PaymentMethod" class="form-select"
+                        asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Description" class="form-label"></label>
+                <input asp-for="Description" class="form-control" />
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record entry")" />
+</form>

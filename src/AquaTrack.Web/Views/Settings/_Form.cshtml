@@ -1,0 +1,120 @@
+@model SettingsViewModel
+<form hx-post="@Url.Action("Save")" hx-target="#aq-settings-form" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+
+    <partial name="_ValidationSummary" />
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-house me-2 text-muted-2"></i>Farm details</h2>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="FarmName" class="form-label">Farm name <span class="req">*</span></label>
+                            <input asp-for="FarmName" class="form-control" />
+                            <div class="form-text">Shown in the sidebar and on every exported report.</div>
+                            <span asp-validation-for="FarmName" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="FarmOwner" class="form-label"></label>
+                            <input asp-for="FarmOwner" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="FarmPhone" class="form-label"></label>
+                            <input asp-for="FarmPhone" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="FarmAddress" class="form-label"></label>
+                            <textarea asp-for="FarmAddress" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title"><i class="bi bi-cash me-2 text-muted-2"></i>Finance</h2>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="CurrencyCode" class="form-label">Currency code <span class="req">*</span></label>
+                            <input asp-for="CurrencyCode" class="form-control" placeholder="BDT" />
+                            <span asp-validation-for="CurrencyCode" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="CurrencySymbol" class="form-label">Symbol <span class="req">*</span></label>
+                            <input asp-for="CurrencySymbol" class="form-control" placeholder="Tk" />
+                            <span asp-validation-for="CurrencySymbol" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="OpeningCashBalance" class="form-label"></label>
+                            <input asp-for="OpeningCashBalance" class="form-control" type="number" step="0.01" />
+                            <div class="form-text">
+                                Cash in hand before the first transaction was recorded. This is added to
+                                every balance the cash book reports.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="aq-card">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi bi-bell me-2 text-muted-2"></i>Alert thresholds
+                    </h2>
+                    <span class="text-faint small ms-auto">Used by the anomaly detector</span>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label asp-for="LowStockWarningDays" class="form-label"></label>
+                            <input asp-for="LowStockWarningDays" class="form-control" type="number" min="1" max="90" />
+                            <span asp-validation-for="LowStockWarningDays" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="MedicineExpiryWarningDays" class="form-label"></label>
+                            <input asp-for="MedicineExpiryWarningDays" class="form-control" type="number" min="1" max="365" />
+                            <div class="form-text">Warn this long before expiry.</div>
+                            <span asp-validation-for="MedicineExpiryWarningDays" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="HighMortalityThresholdPercent" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="HighMortalityThresholdPercent" class="form-control"
+                                       type="number" step="0.1" min="0.1" max="100" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="form-text">Weekly deaths above this share of a batch raise an alert.</div>
+                            <span asp-validation-for="HighMortalityThresholdPercent" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="CostSpikeSigma" class="form-label"></label>
+                            <input asp-for="CostSpikeSigma" class="form-control"
+                                   type="number" step="0.1" min="1" max="5" />
+                            <div class="form-text">
+                                Standard deviations above the farm's own baseline before a cost is
+                                called unusual. Lower is more sensitive.
+                            </div>
+                            <span asp-validation-for="CostSpikeSigma" class="field-validation-error"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mt-3">
+        <button type="submit" class="btn btn-primary">
+            <span class="aq-busy spinner-border spinner-border-sm me-1"></span>Save settings
+        </button>
+    </div>
+</form>

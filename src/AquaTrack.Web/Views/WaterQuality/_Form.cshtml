@@ -1,0 +1,82 @@
+@model WaterQualityFormViewModel
+<partial name="_ModalHeader" model="@(Model.IsEdit ? "Edit reading" : "Record water reading")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <p class="text-muted-2 small">
+            Fill in whatever you measured; blank fields are simply not recorded.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-7">
+                <label asp-for="PondId" class="form-label">Pond <span class="req">*</span></label>
+                <select asp-for="PondId" class="form-select">
+                    <option value="0">Choose a pond</option>
+                    @foreach (var pond in Model.Ponds)
+                    {
+                        <option value="@pond.Id" selected="@(Model.PondId == pond.Id)">@pond.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="PondId" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="RecordDate" class="form-label"></label>
+                <input asp-for="RecordDate" class="form-control" type="date"
+                       max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="RecordDate" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-12"><div class="aq-form-section">Readings</div></div>
+
+            <div class="col-md-4">
+                <label asp-for="Ph" class="form-label"></label>
+                <input asp-for="Ph" class="form-control" type="number" step="0.1" min="0" max="14" autofocus />
+                <div class="form-text">Safe: @WaterQualityRanges.Ph.Min&ndash;@WaterQualityRanges.Ph.Max</div>
+                <span asp-validation-for="Ph" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="TemperatureC" class="form-label"></label>
+                <input asp-for="TemperatureC" class="form-control" type="number" step="0.1" min="0" max="60" />
+                <div class="form-text">Safe: @WaterQualityRanges.TemperatureC.Min&ndash;@WaterQualityRanges.TemperatureC.Max C</div>
+                <span asp-validation-for="TemperatureC" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="DissolvedOxygenMgL" class="form-label"></label>
+                <input asp-for="DissolvedOxygenMgL" class="form-control" type="number" step="0.1" min="0" max="30" />
+                <div class="form-text">Safe: above @WaterQualityRanges.DissolvedOxygen.Min mg/L</div>
+                <span asp-validation-for="DissolvedOxygenMgL" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="AmmoniaMgL" class="form-label"></label>
+                <input asp-for="AmmoniaMgL" class="form-control" type="number" step="0.01" min="0" max="100" />
+                <div class="form-text">Safe: below @WaterQualityRanges.Ammonia.Max mg/L</div>
+                <span asp-validation-for="AmmoniaMgL" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="NitriteMgL" class="form-label"></label>
+                <input asp-for="NitriteMgL" class="form-control" type="number" step="0.01" min="0" max="100" />
+                <span asp-validation-for="NitriteMgL" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="TurbidityCm" class="form-label"></label>
+                <input asp-for="TurbidityCm" class="form-control" type="number" step="1" min="0" max="500" />
+                <div class="form-text">Secchi disc depth.</div>
+                <span asp-validation-for="TurbidityCm" class="field-validation-error"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="2"
+                          placeholder="Water looked green, fish surfacing in the morning"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@(Model.IsEdit ? "Save changes" : "Record reading")" />
+</form>

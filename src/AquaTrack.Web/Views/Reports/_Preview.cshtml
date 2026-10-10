@@ -1,0 +1,93 @@
+@model ReportViewModel
+@*
+    The rendered grid. This is the same ReportTable the PDF and Excel exporters receive,
+    so what is on screen and what downloads cannot drift apart.
+*@
+@{
+    var table = Model.Table;
+}
+<div id="aq-report-preview">
+    @if (table.Summary.Count > 0)
+    {
+        <div class="row g-3 mb-3">
+            @foreach (var (label, value) in table.Summary)
+            {
+                <div class="col-6 col-lg-3">
+                    <div class="aq-stat">
+                        <div style="min-width:0">
+                            <div class="aq-stat-label">@label</div>
+                            <div class="aq-stat-value" style="font-size:1.1rem">@value</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="aq-card">
+        <div class="aq-card-header">
+            <h2 class="aq-card-title">@table.Title</h2>
+            @if (!string.IsNullOrWhiteSpace(table.Subtitle))
+            {
+                <span class="text-muted-2 small">@table.Subtitle</span>
+            }
+            <span class="text-faint small ms-auto">@table.PeriodLabel</span>
+        </div>
+
+        @if (table.Rows.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+                Icon = "bi-file-earmark-bar-graph",
+                Title = "No data for this period",
+                Message = "Try a wider date range." })" />
+        }
+        else
+        {
+            <div class="aq-table-wrap">
+                <table class="table aq-table">
+                    <thead>
+                        <tr>
+                            @foreach (var column in table.Columns)
+                            {
+                                <th class="@ReportViewModel.AlignClass(column.Align)">@column.Header</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in table.Rows)
+                        {
+                            <tr>
+                                @for (var i = 0; i < table.Columns.Count; i++)
+                                {
+                                    var value = i < row.Count ? row[i] : string.Empty;
+                                    var align = ReportViewModel.AlignClass(table.Columns[i].Align);
+                                    var numeric = table.Columns[i].Align == ReportAlign.Right ? " num" : string.Empty;
+
+                                    <td class="@align@numeric">@value</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                    @if (table.TotalsRow is { } totals)
+                    {
+                        <tfoot>
+                            <tr>
+                                @for (var i = 0; i < table.Columns.Count; i++)
+                                {
+                                    var value = i < totals.Count ? totals[i] : string.Empty;
+                                    var align = ReportViewModel.AlignClass(table.Columns[i].Align);
+
+                                    <td class="@align">@value</td>
+                                }
+                            </tr>
+                        </tfoot>
+                    }
+                </table>
+            </div>
+
+            <div class="aq-pager">
+                <span><strong>@table.Rows.Count</strong> row(s)</span>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,70 @@
+@model CashBookViewModel
+@{
+    ViewData["Title"] = "Cash Book";
+}
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Opening balance",
+            Value = Model.Summary.OpeningBalance.ToString("N2"),
+            Meta = "As at " + Model.From.ToString("dd MMM yyyy"),
+            Icon = "bi-safe", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Cash in",
+            Value = Model.Summary.TotalIn.ToString("N2"),
+            Meta = Model.Inflows.Count() + " source(s)",
+            Icon = "bi-arrow-down-circle", Tone = "success" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Cash out",
+            Value = Model.Summary.TotalOut.ToString("N2"),
+            Meta = Model.Outflows.Count() + " category(s)",
+            Icon = "bi-arrow-up-circle", Tone = "warning" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Closing balance",
+            Value = Model.Summary.ClosingBalance.ToString("N2"),
+            Meta = "As at " + Model.To.ToString("dd MMM yyyy"),
+            Icon = "bi-cash-stack",
+            Tone = Model.Summary.ClosingBalance >= 0 ? "accent" : "danger" })" />
+    </div>
+</div>
+
+<div class="aq-card">
+    <div class="aq-filters">
+        <div>
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control form-control-sm"
+                   value="@Model.From.ToString("yyyy-MM-dd")"
+                   hx-get="@Url.Action("Ledger")" hx-target="#aq-cash-ledger" hx-swap="outerHTML"
+                   hx-include="[name=to]" hx-push-url="true" />
+        </div>
+        <div>
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control form-control-sm"
+                   value="@Model.To.ToString("yyyy-MM-dd")"
+                   hx-get="@Url.Action("Ledger")" hx-target="#aq-cash-ledger" hx-swap="outerHTML"
+                   hx-include="[name=from]" hx-push-url="true" />
+        </div>
+
+        <div class="ms-auto d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm"
+               asp-controller="Reports" asp-action="Report"
+               asp-route-kind="@ReportKind.CashFlow"
+               asp-route-from="@Model.From.ToString("yyyy-MM-dd")"
+               asp-route-to="@Model.To.ToString("yyyy-MM-dd")">
+                <i class="bi bi-file-earmark-text me-1"></i>Cash flow report
+            </a>
+            <button type="button" class="btn btn-primary btn-sm"
+                    hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                <i class="bi bi-plus-lg me-1"></i>Add entry
+            </button>
+        </div>
+    </div>
+
+    <partial name="_Ledger" model="Model" />
+</div>

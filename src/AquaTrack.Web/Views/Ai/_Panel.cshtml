@@ -1,0 +1,297 @@
+@model AiInsightsViewModel
+<div id="aq-ai-panel">
+    <div class="row g-3">
+        <!-- AI-1: feed recommendation -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi bi-basket me-2 text-muted-2"></i>Feed recommendation
+                    </h2>
+                    <span class="aq-badge aq-badge-info ms-auto">AI-1</span>
+                </div>
+
+                @if (Model.FeedAdvice.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-text">No active batches to recommend feed for.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="aq-card-body pb-0">
+                        <div class="d-flex gap-4 flex-wrap mb-3">
+                            <div>
+                                <div class="aq-stat-label">Recommended today</div>
+                                <div class="aq-stat-value">@Model.TotalRecommendedFeedKg.ToString("N2") kg</div>
+                            </div>
+                            <div>
+                                <div class="aq-stat-label">Recent average</div>
+                                <div class="aq-stat-value">@Model.TotalActualFeedKg.ToString("N2") kg</div>
+                            </div>
+                            @if (Model.FeedGapPercent is { } gap)
+                            {
+                                <div>
+                                    <div class="aq-stat-label">Difference</div>
+                                    <div class="aq-stat-value @(Math.Abs(gap) <= 10 ? "text-success" : "text-warning")">
+                                        @(gap > 0 ? "+" : "")@gap.ToString("N1")%
+                                    </div>
+                                    <div class="aq-stat-meta">
+                                        @(gap > 10 ? "Feeding above advice" : gap < -10 ? "Feeding below advice" : "Close to advice")
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="aq-table-wrap">
+                        <table class="table aq-table">
+                            <thead>
+                                <tr>
+                                    <th>Pond</th>
+                                    <th>Species</th>
+                                    <th class="text-end">Biomass</th>
+                                    <th class="text-end">Rate</th>
+                                    <th class="text-end">Recommended</th>
+                                    <th class="text-center">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var advice in Model.FeedAdvice)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@advice.PondName</td>
+                                        <td>@advice.SpeciesName</td>
+                                        <td class="num">@advice.BiomassKg.ToString("N1") kg</td>
+                                        <td class="num">@advice.FeedRatePercent.ToString("N1")%</td>
+                                        <td class="num fw-semibold">@advice.RecommendedKgPerDay.ToString("N2") kg</td>
+                                        <td class="text-center">
+                                            <span class="aq-badge aq-badge-@AiInsightsViewModel.ConfidenceTone(advice.Confidence)"
+                                                  title="@advice.Rationale">
+                                                @AiInsightsViewModel.ConfidenceLabel(advice.Confidence)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="aq-card-body border-top">
+                        <div class="aq-stat-label mb-1">How this is worked out</div>
+                        <div class="text-muted-2" style="font-size:.78rem">@Model.FeedAdvice[0].Rationale</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- AI-2: growth prediction -->
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi bi-graph-up-arrow me-2 text-muted-2"></i>Growth prediction
+                    </h2>
+                    <span class="aq-badge aq-badge-info ms-auto">AI-2</span>
+                </div>
+
+                @if (Model.GrowthForecasts.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-text">No active batches to forecast.</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="aq-card-body pb-0">
+                        <div class="d-flex gap-4 flex-wrap mb-3">
+                            <div>
+                                <div class="aq-stat-label">Biomass in 30 days</div>
+                                <div class="aq-stat-value">@Model.PredictedBiomassKg.ToString("N1") kg</div>
+                            </div>
+                            @if (Model.NextHarvest is { } next)
+                            {
+                                <div>
+                                    <div class="aq-stat-label">Next ready</div>
+                                    <div class="aq-stat-value" style="font-size:1.05rem">
+                                        @next.EstimatedHarvestDate?.ToString("dd MMM yyyy")
+                                    </div>
+                                    <div class="aq-stat-meta">@next.SpeciesName in @next.PondName</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="aq-table-wrap">
+                        <table class="table aq-table">
+                            <thead>
+                                <tr>
+                                    <th>Pond</th>
+                                    <th>Species</th>
+                                    <th class="text-end">Now</th>
+                                    <th class="text-end">Gain/day</th>
+                                    <th class="text-end">In 30 days</th>
+                                    <th class="text-center">Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var forecast in Model.GrowthForecasts)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@forecast.PondName</td>
+                                        <td>@forecast.SpeciesName</td>
+                                        <td class="num">@forecast.CurrentAvgWeightGram.ToString("N0") g</td>
+                                        <td class="num">@forecast.DailyGainGram.ToString("N2") g</td>
+                                        <td class="num fw-semibold">@forecast.PredictedWeightGram.ToString("N0") g</td>
+                                        <td class="text-center">
+                                            <span class="aq-badge aq-badge-@AiInsightsViewModel.ConfidenceTone(forecast.Confidence)"
+                                                  title="@forecast.Rationale">
+                                                @AiInsightsViewModel.ConfidenceLabel(forecast.Confidence)
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="aq-card-body border-top">
+                        <div class="aq-stat-label mb-1">How this is worked out</div>
+                        <div class="text-muted-2" style="font-size:.78rem">@Model.GrowthForecasts[0].Rationale</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- AI-3: finance forecast -->
+        <div class="col-lg-7">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi bi-cash-stack me-2 text-muted-2"></i>Expense and profit forecast
+                    </h2>
+                    <span class="aq-badge aq-badge-info ms-auto">AI-3</span>
+                </div>
+                <div class="aq-card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <div class="aq-stat-label">Predicted income</div>
+                            <div class="aq-stat-value text-success">
+                                @Model.FinanceForecast.PredictedIncome.ToString("N0")
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="aq-stat-label">Predicted expense</div>
+                            <div class="aq-stat-value text-warning">
+                                @Model.FinanceForecast.PredictedExpense.ToString("N0")
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="aq-stat-label">Predicted profit</div>
+                            <div class="aq-stat-value @(Model.FinanceForecast.PredictedProfit >= 0 ? "text-success" : "text-danger")">
+                                @Model.FinanceForecast.PredictedProfit.ToString("N0")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="aq-badge aq-badge-@AiInsightsViewModel.ConfidenceTone(Model.FinanceForecast.Confidence)">
+                            @AiInsightsViewModel.ConfidenceLabel(Model.FinanceForecast.Confidence) confidence
+                        </span>
+                        <span class="text-faint small">for @Model.FinanceForecast.Month.ToString("MMMM yyyy")</span>
+                    </div>
+
+                    @if (Model.FinanceForecast.History.Count > 0)
+                    {
+                        <div class="aq-chart-wrap" style="height:200px">
+                            <canvas id="chart-finance-forecast"></canvas>
+                        </div>
+                    }
+
+                    <div class="mt-3">
+                        <div class="aq-stat-label mb-1">How this is worked out</div>
+                        <div class="text-muted-2" style="font-size:.78rem">@Model.FinanceForecast.Rationale</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI-4: anomalies -->
+        <div class="col-lg-5">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi bi-activity me-2 text-muted-2"></i>Anomaly detection
+                    </h2>
+                    <span class="aq-badge aq-badge-info ms-auto">AI-4</span>
+                </div>
+
+                @if (Model.Anomalies.Count == 0)
+                {
+                    <div class="aq-empty py-4">
+                        <div class="aq-empty-icon"><i class="bi bi-check2-circle"></i></div>
+                        <div class="aq-empty-title">Nothing unusual</div>
+                        <div class="aq-empty-text">
+                            Costs, mortality and stock are all within this farm's normal range.
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var anomaly in Model.Anomalies)
+                        {
+                            var tone = anomaly.Severity switch
+                            {
+                                NotificationSeverity.Critical => "danger",
+                                NotificationSeverity.Warning => "warning",
+                                _ => "info",
+                            };
+
+                            <div class="list-group-item py-2 px-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="aq-badge aq-badge-@tone">@anomaly.Severity</span>
+                                    <span class="fw-semibold" style="font-size:.82rem">@anomaly.Title</span>
+                                </div>
+                                <div class="text-muted-2 mt-1" style="font-size:.76rem">@anomaly.Message</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var history = @Json.Serialize(Model.FinanceForecast.History.Select(h => new {
+            label = h.Month.ToString("MMM yy"),
+            income = h.Income,
+            expense = h.Expense
+        }));
+
+        if (!history.length) return;
+
+        var forecast = {
+            label: '@Model.FinanceForecast.Month.ToString("MMM yy") (est)',
+            income: @Model.FinanceForecast.PredictedIncome,
+            expense: @Model.FinanceForecast.PredictedExpense
+        };
+
+        var labels = history.map(function (h) { return h.label; }).concat(forecast.label);
+
+        AquaTrack.chart('chart-finance-forecast', 'line', labels, [
+            {
+                label: 'Income',
+                data: history.map(function (h) { return h.income; }).concat(forecast.income),
+                color: '#16794c'
+            },
+            {
+                label: 'Expense',
+                data: history.map(function (h) { return h.expense; }).concat(forecast.expense),
+                color: '#b3261e'
+            }
+        ]);
+    })();
+</script>

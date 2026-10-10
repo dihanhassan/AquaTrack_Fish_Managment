@@ -48,7 +48,8 @@
 }
 else if (inlineOnly)
 {
-    <div class="alert alert-danger py-2 px-3 small mb-3">
+    @* data-generic marks this as a stand-in, so the toast prefers the real field messages. *@
+    <div class="alert alert-danger py-2 px-3 small mb-3" data-generic>
         <i class="bi bi-exclamation-triangle-fill me-1"></i>
         Some entries need attention. Check the highlighted fields below.
     </div>

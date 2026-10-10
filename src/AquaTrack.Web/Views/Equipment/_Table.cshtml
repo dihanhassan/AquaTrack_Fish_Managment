@@ -1,0 +1,128 @@
+@model EquipmentListViewModel
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-equipment-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-equipment-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search)
+            ? new EmptyStateViewModel {
+                Icon = "bi-gear-wide-connected",
+                Title = "No equipment yet",
+                Message = "Add your pumps, aerators, nets and generators to track their upkeep cost.",
+                ActionLabel = canManage ? "Add equipment" : null,
+                ActionUrl = canManage ? Url.Action("Form") : null }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Equipment", "name", "start")" />
+                        <partial name="_SortHeader" model="@header("Category", "category", "start")" />
+                        <th>Assigned to</th>
+                        <partial name="_SortHeader" model="@header("Purchased", "purchased", "start")" />
+                        <th class="text-end">Qty</th>
+                        <partial name="_SortHeader" model="@header("Cost", "cost", "end")" />
+                        <th class="text-center">Condition</th>
+                        <th class="text-center">Warranty</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a class="fw-semibold" asp-action="Details" asp-route-id="@item.Id">@item.Name</a>
+                                @if (!string.IsNullOrWhiteSpace(item.Brand) || !string.IsNullOrWhiteSpace(item.Code))
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">
+                                        @(item.Code ?? "")@(item.Code is not null && item.Brand is not null ? " · " : "")@(item.Brand ?? "")
+                                    </div>
+                                }
+                            </td>
+                            <td><span class="aq-badge aq-badge-neutral">@item.Category</span></td>
+                            <td class="text-muted-2">@(item.Pond?.Name ?? "-")</td>
+                            <td>@item.PurchaseDate.ToString("dd MMM yyyy")</td>
+                            <td class="num">@item.Quantity</td>
+                            <td class="num">@item.TotalPurchaseCost.ToString("N2")</td>
+                            <td class="text-center">
+                                <span class="aq-badge aq-badge-@EquipmentListViewModel.ConditionTone(item.Condition)">
+                                    @item.Condition
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                @if (item.WarrantyUntil is null)
+                                {
+                                    <span class="text-faint">-</span>
+                                }
+                                else if (item.IsUnderWarranty)
+                                {
+                                    <span class="aq-badge aq-badge-success" title="Until @item.WarrantyUntil?.ToString("dd MMM yyyy")">
+                                        Covered
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-faint" style="font-size:.76rem">Expired</span>
+                                }
+                            </td>
+                            <td class="aq-row-actions">
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Record maintenance"
+                                            hx-get="@Url.Action("MaintenanceForm", new { equipmentId = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-tools"></i>
+                                    </button>
+                                }
+                                <a class="btn btn-icon" asp-action="Details" asp-route-id="@item.Id" title="Open">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = item.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5">Purchase value on this page</td>
+                        <td class="num">@Model.PageValue.ToString("N2")</td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-equipment-table", routeValues)" />
+    }
+</div>

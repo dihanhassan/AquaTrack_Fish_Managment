@@ -1,0 +1,74 @@
+@model ReportCatalogueViewModel
+@{
+    ViewData["Title"] = "Reports";
+}
+<div class="aq-card mb-3">
+    <div class="aq-filters">
+        <div>
+            <label class="form-label">From</label>
+            <input type="date" id="report-from" class="form-control form-control-sm"
+                   value="@Model.From.ToString("yyyy-MM-dd")" />
+        </div>
+        <div>
+            <label class="form-label">To</label>
+            <input type="date" id="report-to" class="form-control form-control-sm"
+                   value="@Model.To.ToString("yyyy-MM-dd")" />
+        </div>
+        <div class="text-muted-2 small ms-2 mb-1">
+            The range applies to whichever report you open.
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var group in Model.Groups)
+    {
+        <div class="col-lg-6">
+            <div class="aq-card h-100">
+                <div class="aq-card-header">
+                    <h2 class="aq-card-title">
+                        <i class="bi @group.Icon me-2 text-muted-2"></i>@group.Name
+                    </h2>
+                </div>
+                <div class="list-group list-group-flush">
+                    @foreach (var report in group.Reports)
+                    {
+                        <a class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3"
+                           asp-action="Report" asp-route-kind="@report.Kind"
+                           data-report-link>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold" style="font-size:.86rem">@report.Title</div>
+                                <div class="text-muted-2" style="font-size:.78rem">@report.Description</div>
+                            </div>
+                            <i class="bi bi-chevron-right text-faint"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // The two pickers above drive every link on the page, so the chosen range
+        // follows the user into whichever report they open.
+        (function () {
+            var from = document.getElementById('report-from');
+            var to = document.getElementById('report-to');
+
+            function applyRange() {
+                document.querySelectorAll('[data-report-link]').forEach(function (link) {
+                    var url = new URL(link.href, window.location.origin);
+                    url.searchParams.set('from', from.value);
+                    url.searchParams.set('to', to.value);
+                    link.href = url.pathname + url.search;
+                });
+            }
+
+            from.addEventListener('change', applyRange);
+            to.addEventListener('change', applyRange);
+            applyRange();
+        })();
+    </script>
+}

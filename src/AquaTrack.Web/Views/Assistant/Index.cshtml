@@ -1,0 +1,59 @@
+@model AssistantViewModel
+@{
+    ViewData["Title"] = "Assistant";
+}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="aq-card mb-3">
+            <div class="aq-card-body">
+                <form hx-post="@Url.Action("Ask")"
+                      hx-target="#aq-assistant-answer"
+                      hx-swap="innerHTML">
+                    @Html.AntiForgeryToken()
+
+                    <label class="form-label">Ask about your farm</label>
+                    <div class="input-group">
+                        <input type="text" name="question" class="form-control" id="aq-question"
+                               placeholder="Which category cost the most this month?" autofocus
+                               autocomplete="off" />
+                        <button type="submit" class="btn btn-primary">
+                            <span class="aq-busy spinner-border spinner-border-sm me-1"></span>
+                            <i class="bi bi-send me-1"></i>Ask
+                        </button>
+                    </div>
+                    <div class="form-text">
+                        Answers come from your recorded data. Questions in English or Bangla both work.
+                    </div>
+                </form>
+
+                <div class="mt-3">
+                    <div class="aq-stat-label mb-2">Try one of these</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var suggestion in Model.Suggestions)
+                        {
+                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                    onclick="AquaTrack.askAssistant(this.textContent.trim())">
+                                @suggestion
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="aq-assistant-answer"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Puts a suggestion into the box and submits, so a tap is one action rather than two.
+        AquaTrack.askAssistant = function (question) {
+            var input = document.getElementById('aq-question');
+            if (!input) return;
+
+            input.value = question;
+            htmx.trigger(input.closest('form'), 'submit');
+        };
+    </script>
+}

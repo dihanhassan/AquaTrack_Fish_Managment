@@ -1,0 +1,115 @@
+@model ExpenseListViewModel
+@{
+    ViewData["Title"] = "Expenses";
+}
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Total for period",
+            Value = Model.PeriodTotal.ToString("N2"),
+            Meta = Model.From.ToString("dd MMM") + " to " + Model.To.ToString("dd MMM yyyy"),
+            Icon = "bi-wallet2", Tone = "warning" })" />
+    </div>
+    <div class="col-md-4">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Largest category",
+            Value = Model.Largest?.Name ?? "-",
+            Meta = Model.Largest is null
+                ? "Nothing recorded"
+                : Model.Largest.Amount.ToString("N2") + " (" + Model.ShareOf(Model.Largest).ToString("N0") + "% of total)",
+            Icon = "bi-pie-chart", Tone = "primary" })" />
+    </div>
+    <div class="col-md-4">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Categories used",
+            Value = Model.ByCategory.Count.ToString(),
+            Meta = "In this period",
+            Icon = "bi-tags", Tone = "accent",
+            Url = Url.Action("Categories") })" />
+    </div>
+</div>
+
+<div class="aq-card">
+    <div class="aq-filters">
+        <div style="max-width:220px" class="flex-grow-1">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Description or voucher"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-expense-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[data-expense-filter]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control form-control-sm" data-expense-filter
+                   value="@Model.From.ToString("yyyy-MM-dd")"
+                   hx-get="@Url.Action("List")" hx-target="#aq-expense-table" hx-swap="outerHTML"
+                   hx-include="[name=search],[data-expense-filter]" hx-push-url="true" />
+        </div>
+        <div>
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control form-control-sm" data-expense-filter
+                   value="@Model.To.ToString("yyyy-MM-dd")"
+                   hx-get="@Url.Action("List")" hx-target="#aq-expense-table" hx-swap="outerHTML"
+                   hx-include="[name=search],[data-expense-filter]" hx-push-url="true" />
+        </div>
+        <div>
+            <label class="form-label">Category</label>
+            <select name="categoryId" class="form-select form-select-sm" data-expense-filter
+                    hx-get="@Url.Action("List")" hx-target="#aq-expense-table" hx-swap="outerHTML"
+                    hx-include="[name=search],[data-expense-filter]" hx-push-url="true">
+                <option value="">All categories</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">@category.Name</option>
+                }
+            </select>
+        </div>
+
+        <div class="ms-auto d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm"
+                    hx-get="@Url.Action("IncomeForm")" hx-target="#aq-modal-content">
+                <i class="bi bi-arrow-down-circle me-1"></i>Other income
+            </button>
+            <button type="button" class="btn btn-primary btn-sm"
+                    hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                <i class="bi bi-plus-lg me-1"></i>Add expense
+            </button>
+        </div>
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>
+
+@if (Model.ByCategory.Count > 0)
+{
+    <div class="aq-card mt-3">
+        <div class="aq-card-header">
+            <h2 class="aq-card-title">Breakdown by category</h2>
+            <span class="text-faint small ms-auto">
+                @Model.From.ToString("dd MMM") to @Model.To.ToString("dd MMM yyyy")
+            </span>
+        </div>
+        <div class="aq-card-body">
+            @foreach (var category in Model.ByCategory)
+            {
+                var share = Model.ShareOf(category);
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small">
+                        <span>@category.Name</span>
+                        <span class="num">@category.Amount.ToString("N2") <span class="text-faint">@share.ToString("N1")%</span></span>
+                    </div>
+                    <div class="progress" style="height:6px">
+                        <div class="progress-bar" style="width:@share.ToString(System.Globalization.CultureInfo.InvariantCulture)%;background:var(--aq-primary)"></div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}

@@ -85,7 +85,11 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/Error");
+
+    // A 404 or 403 re-executes onto the status page, so the user keeps the app chrome
+    // instead of landing on a blank browser error.
+    app.UseStatusCodePagesWithReExecute("/Error/{0}");
     app.UseHsts();
 }
 

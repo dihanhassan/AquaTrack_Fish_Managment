@@ -1,0 +1,68 @@
+@model IReadOnlyList<ExpenseCategory>
+@{
+    ViewData["Title"] = "Expense categories";
+}
+<div class="d-flex gap-2 mb-3">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>Back to expenses
+    </a>
+    <button type="button" class="btn btn-primary btn-sm ms-auto"
+            hx-get="@Url.Action("CategoryForm")" hx-target="#aq-modal-content">
+        <i class="bi bi-plus-lg me-1"></i>Add category
+    </button>
+</div>
+
+<div class="aq-card" id="aq-category-list"
+     hx-get="@Url.Action("Categories")"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-select="#aq-category-list"
+     hx-swap="outerHTML">
+    <div class="aq-table-wrap">
+        <table class="table aq-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Status</th>
+                    <th class="aq-row-actions"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var category in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@category.Name</td>
+                        <td class="text-muted-2">@(category.Description ?? "-")</td>
+                        <td class="text-center">
+                            <span class="aq-badge aq-badge-@(category.IsSystem ? "info" : "neutral")">
+                                @(category.IsSystem ? "Built-in" : "Custom")
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="aq-badge aq-badge-@(category.IsActive ? "success" : "neutral")">
+                                @(category.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td class="aq-row-actions">
+                            <button type="button" class="btn btn-icon" title="Edit"
+                                    hx-get="@Url.Action("CategoryForm", new { id = category.Id })"
+                                    hx-target="#aq-modal-content">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            @if (!category.IsSystem)
+                            {
+                                <button type="button" class="btn btn-icon danger" title="Delete"
+                                        hx-delete="@Url.Action("DeleteCategory", new { id = category.Id })"
+                                        hx-confirm="Delete the category @category.Name?"
+                                        hx-swap="none">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

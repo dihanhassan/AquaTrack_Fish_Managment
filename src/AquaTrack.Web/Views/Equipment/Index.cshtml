@@ -1,0 +1,48 @@
+@model EquipmentListViewModel
+@{
+    ViewData["Title"] = "Equipment";
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div class="flex-grow-1" style="max-width:300px">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Name, code or brand"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-equipment-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[name=condition]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div>
+            <select name="condition" class="form-select form-select-sm"
+                    hx-get="@Url.Action("List")" hx-target="#aq-equipment-table" hx-swap="outerHTML"
+                    hx-include="[name=search]" hx-push-url="true">
+                <option value="">All conditions</option>
+                @foreach (var condition in Enum.GetValues<EquipmentCondition>())
+                {
+                    <option value="@condition" selected="@(Model.ConditionFilter == condition.ToString())">
+                        @condition
+                    </option>
+                }
+            </select>
+        </div>
+
+        @if (canManage)
+        {
+            <div class="ms-auto">
+                <button type="button" class="btn btn-primary btn-sm"
+                        hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                    <i class="bi bi-plus-lg me-1"></i>Add equipment
+                </button>
+            </div>
+        }
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>

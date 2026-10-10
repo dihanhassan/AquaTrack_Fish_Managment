@@ -1,0 +1,103 @@
+@model ExpenseListViewModel
+@{
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-expense-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-expense-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+            Icon = "bi-wallet2",
+            Title = "No expenses in this period",
+            Message = "Widen the date range, or record a cost to start tracking where the money goes.",
+            ActionLabel = "Add expense",
+            ActionUrl = Url.Action("Form") })" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Date", "date", "start")" />
+                        <partial name="_SortHeader" model="@header("Category", "category", "start")" />
+                        <th>Description</th>
+                        <th>Pond</th>
+                        <th class="text-center">Method</th>
+                        <partial name="_SortHeader" model="@header("Amount", "amount", "end")" />
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var expense in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>@expense.ExpenseDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <span class="aq-badge aq-badge-neutral">@(expense.ExpenseCategory?.Name ?? "-")</span>
+                            </td>
+                            <td>
+                                @(expense.Description ?? "-")
+                                @if (expense.IsSystemGenerated)
+                                {
+                                    <span class="aq-badge aq-badge-info ms-1" title="Created by another document">
+                                        <i class="bi bi-link-45deg"></i> auto
+                                    </span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(expense.VoucherNo))
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">@expense.VoucherNo</div>
+                                }
+                            </td>
+                            <td class="text-muted-2">@(expense.Pond?.Name ?? "-")</td>
+                            <td class="text-center">
+                                <span class="text-muted-2" style="font-size:.78rem">@expense.PaymentMethod</span>
+                            </td>
+                            <td class="num fw-semibold">@expense.Amount.ToString("N2")</td>
+                            <td class="aq-row-actions">
+                                @if (!expense.IsSystemGenerated)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Edit"
+                                            hx-get="@Url.Action("Form", new { id = expense.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = expense.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-faint" style="font-size:.72rem">from document</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5">Total for the whole period</td>
+                        <td class="num">@Model.PeriodTotal.ToString("N2")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-expense-table", routeValues)" />
+    }
+</div>

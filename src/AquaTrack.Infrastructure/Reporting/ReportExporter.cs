@@ -9,6 +9,11 @@ namespace AquaTrack.Infrastructure.Reporting;
 /// <summary>Renders any <see cref="ReportTable"/> to PDF, Excel or CSV.</summary>
 public class ReportExporter : IReportExporter
 {
+    // QuestPDF 2026.9+ no longer falls back to system fonts (e.g. Calibri) when one is
+    // unavailable — it throws instead. "Lato" ships bundled with QuestPDF itself, so it
+    // renders identically on any machine, including a deployment box with no fonts installed.
+    private const string PdfFont = "Lato";
+
     public byte[] ToPdf(ReportTable table, string farmName)
     {
         var document = Document.Create(container =>
@@ -17,7 +22,7 @@ public class ReportExporter : IReportExporter
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(24);
-                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Calibri"));
+                page.DefaultTextStyle(x => x.FontSize(9).FontFamily(PdfFont));
 
                 page.Header().Element(header => ComposeHeader(header, table, farmName));
                 page.Content().PaddingVertical(8).Element(content => ComposeContent(content, table));

@@ -1,0 +1,31 @@
+@model UserListViewModel
+@{
+    ViewData["Title"] = "Users";
+}
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Active users", Value = Model.ActiveCount.ToString(),
+            Meta = Model.Users.Count + " total",
+            Icon = "bi-people", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Administrators", Value = Model.AdminCount.ToString(),
+            Meta = "Full control of the system",
+            Icon = "bi-shield-lock",
+            Tone = Model.AdminCount > 1 ? "accent" : "warning" })" />
+    </div>
+</div>
+
+<div class="aq-card">
+    <div class="aq-card-header">
+        <h2 class="aq-card-title">All users</h2>
+        <button type="button" class="btn btn-primary btn-sm ms-auto"
+                hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+            <i class="bi bi-person-plus me-1"></i>Add user
+        </button>
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>

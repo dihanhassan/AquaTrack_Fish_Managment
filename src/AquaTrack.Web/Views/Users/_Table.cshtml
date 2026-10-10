@@ -1,0 +1,70 @@
+@model UserListViewModel
+<div id="aq-user-table"
+     hx-get="@Url.Action("List")"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    <div class="aq-table-wrap">
+        <table class="table aq-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th class="text-center">Role</th>
+                    <th class="text-center">Status</th>
+                    <th>Last sign-in</th>
+                    <th class="aq-row-actions"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">@user.FullName</span>
+                            @if (user.IsSelf)
+                            {
+                                <span class="aq-badge aq-badge-info ms-1">you</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(user.Designation))
+                            {
+                                <div class="text-faint" style="font-size:.74rem">@user.Designation</div>
+                            }
+                        </td>
+                        <td class="text-muted-2">@user.Email</td>
+                        <td class="text-muted-2">@(user.Phone ?? "-")</td>
+                        <td class="text-center">
+                            <span class="aq-badge aq-badge-@user.RoleTone">@user.PrimaryRole</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="aq-badge aq-badge-@(user.IsActive ? "success" : "neutral")">
+                                @(user.IsActive ? "Active" : "Disabled")
+                            </span>
+                        </td>
+                        <td class="text-muted-2" style="font-size:.8rem">
+                            @(user.LastLoginUtc.HasValue
+                                ? user.LastLoginUtc.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                                : "Never")
+                        </td>
+                        <td class="aq-row-actions">
+                            <button type="button" class="btn btn-icon" title="Edit"
+                                    hx-get="@Url.Action("Form", new { id = user.Id })"
+                                    hx-target="#aq-modal-content">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            @if (!user.IsSelf)
+                            {
+                                <button type="button" class="btn btn-icon danger" title="Delete"
+                                        hx-get="@Url.Action("ConfirmDelete", new { id = user.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,97 @@
+@model WaterQualityListViewModel
+@{
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+}
+<div id="aq-water-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+            Icon = "bi-droplet-half",
+            Title = "No readings yet",
+            Message = "Record pH, temperature and dissolved oxygen so a rise in mortality can be explained.",
+            ActionLabel = "Record reading",
+            ActionUrl = Url.Action("Form") })" />
+    }
+    else
+    {
+        @if (Model.FlaggedCount > 0)
+        {
+            <div class="alert alert-warning py-2 px-3 small mb-0 rounded-0 border-start-0 border-end-0">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                @Model.FlaggedCount reading(s) on this page sit outside the safe band.
+            </div>
+        }
+
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Pond</th>
+                        <th class="text-end">pH</th>
+                        <th class="text-end">Temp</th>
+                        <th class="text-end">DO</th>
+                        <th class="text-end">Ammonia</th>
+                        <th class="text-end">Nitrite</th>
+                        <th class="text-end">Turbidity</th>
+                        <th>Notes</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>@log.RecordDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <a asp-controller="Ponds" asp-action="Details" asp-route-id="@log.PondId">
+                                    @(log.Pond?.Name ?? "-")
+                                </a>
+                            </td>
+                            <td class="num @WaterQualityRanges.ToneFor(log.Ph, WaterQualityRanges.Ph)">
+                                @(log.Ph?.ToString("N1") ?? "-")
+                            </td>
+                            <td class="num @WaterQualityRanges.ToneFor(log.TemperatureC, WaterQualityRanges.TemperatureC)">
+                                @(log.TemperatureC?.ToString("N1") ?? "-")
+                            </td>
+                            <td class="num @WaterQualityRanges.ToneFor(log.DissolvedOxygenMgL, WaterQualityRanges.DissolvedOxygen)">
+                                @(log.DissolvedOxygenMgL?.ToString("N1") ?? "-")
+                            </td>
+                            <td class="num @WaterQualityRanges.ToneFor(log.AmmoniaMgL, WaterQualityRanges.Ammonia)">
+                                @(log.AmmoniaMgL?.ToString("N2") ?? "-")
+                            </td>
+                            <td class="num @WaterQualityRanges.ToneFor(log.NitriteMgL, WaterQualityRanges.Nitrite)">
+                                @(log.NitriteMgL?.ToString("N2") ?? "-")
+                            </td>
+                            <td class="num">@(log.TurbidityCm?.ToString("N0") ?? "-")</td>
+                            <td class="text-muted-2" style="font-size:.78rem">@(log.Notes ?? "")</td>
+                            <td class="aq-row-actions">
+                                <button type="button" class="btn btn-icon" title="Edit"
+                                        hx-get="@Url.Action("Form", new { id = log.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                @if (canManage)
+                                {
+                                    <button type="button" class="btn btn-icon danger" title="Delete"
+                                            hx-get="@Url.Action("ConfirmDelete", new { id = log.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-water-table", routeValues)" />
+    }
+</div>

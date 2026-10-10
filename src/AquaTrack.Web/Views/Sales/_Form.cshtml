@@ -1,7 +1,7 @@
 @model SaleFormViewModel
 <partial name="_ModalHeader" model="@("New sale")" />
 
-<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate data-modal-size="lg">
     @Html.AntiForgeryToken()
 
     <div class="modal-body">
@@ -32,7 +32,7 @@
             @for (var i = 0; i < Model.Items.Count; i++)
             {
                 var line = Model.Items[i];
-                <div class="row g-2 mb-2 align-items-end" data-row data-row-index="@i">
+                <div class="row g-2 mb-2 align-items-start" data-row data-row-index="@i">
                     <div class="col-md-3">
                         <label class="form-label">Species</label>
                         <select name="Items[@i].FishTypeId" class="form-select form-select-sm">
@@ -138,7 +138,7 @@
 
 @* Cloned by AquaTrack.addRow; indexes are rewritten after insertion. *@
 <template id="aq-sale-line-template">
-    <div class="row g-2 mb-2 align-items-end" data-row>
+    <div class="row g-2 mb-2 align-items-start" data-row>
         <div class="col-md-3">
             <label class="form-label">Species</label>
             <select name="Items[0].FishTypeId" class="form-select form-select-sm">

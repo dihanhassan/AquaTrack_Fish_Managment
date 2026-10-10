@@ -1,0 +1,187 @@
+@model EquipmentDetailsViewModel
+@{
+    ViewData["Title"] = Model.Equipment.Name;
+    var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+    var item = Model.Equipment;
+}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>All equipment
+    </a>
+    @if (canManage)
+    {
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("MaintenanceForm", new { equipmentId = item.Id })"
+                hx-target="#aq-modal-content">
+            <i class="bi bi-tools me-1"></i>Record maintenance
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm"
+                hx-get="@Url.Action("PartForm", new { equipmentId = item.Id })"
+                hx-target="#aq-modal-content">
+            <i class="bi bi-nut me-1"></i>Add spare part
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm ms-auto"
+                hx-get="@Url.Action("Form", new { id = item.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </button>
+    }
+</div>
+
+@if (Model.NextDue?.NextDueDate is { } due && due <= DateOnly.FromDateTime(DateTime.Today).AddDays(7))
+{
+    <div class="alert alert-warning py-2 px-3 small">
+        <i class="bi bi-tools me-1"></i>
+        Maintenance is due on @due.ToString("dd MMM yyyy").
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Condition", Value = item.Condition.ToString(),
+            Meta = item.IsUnderWarranty ? "Under warranty" : "Out of warranty",
+            Icon = "bi-gear-wide-connected",
+            Tone = EquipmentListViewModel.ConditionTone(item.Condition) })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Purchase cost", Value = item.TotalPurchaseCost.ToString("N2"),
+            Meta = item.Quantity + " unit(s), bought " + item.PurchaseDate.ToString("MMM yyyy"),
+            Icon = "bi-cart", Tone = "primary" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Maintenance spend", Value = Model.MaintenanceCost.ToString("N2"),
+            Meta = Model.Maintenance.Count + " service record(s)",
+            Icon = "bi-tools",
+            Tone = Model.MaintenanceCost > item.TotalPurchaseCost * 0.5m ? "warning" : "accent" })" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <partial name="_StatCard" model="@(new StatCardViewModel {
+            Label = "Total cost of ownership", Value = Model.TotalCostOfOwnership.ToString("N2"),
+            Meta = "Purchase plus every repair",
+            Icon = "bi-cash-stack", Tone = "primary" })" />
+    </div>
+</div>
+
+<div class="row g-3 mt-0">
+    <div class="col-lg-5">
+        <div class="aq-card h-100">
+            <div class="aq-card-header">
+                <h2 class="aq-card-title">Spare parts</h2>
+                @if (Model.LowStockParts.Any())
+                {
+                    <span class="aq-badge aq-badge-warning ms-auto">
+                        @Model.LowStockParts.Count() low
+                    </span>
+                }
+            </div>
+            @if (Model.Parts.Count == 0)
+            {
+                <div class="aq-empty py-4"><div class="aq-empty-text">No spare parts recorded.</div></div>
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr>
+                                <th>Part</th>
+                                <th class="text-end">Held</th>
+                                <th class="text-end">Value</th>
+                                <th class="aq-row-actions"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var part in Model.Parts)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="fw-semibold">@part.Name</span>
+                                        @if (part.IsLowStock)
+                                        {
+                                            <span class="aq-badge aq-badge-warning ms-1">low</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(part.PartNo))
+                                        {
+                                            <div class="text-faint" style="font-size:.74rem">@part.PartNo</div>
+                                        }
+                                    </td>
+                                    <td class="num">@part.Quantity.ToString("N2") <span class="text-faint">@part.Unit</span></td>
+                                    <td class="num">@part.StockValue.ToString("N2")</td>
+                                    <td class="aq-row-actions">
+                                        @if (canManage)
+                                        {
+                                            <button type="button" class="btn btn-icon danger" title="Delete"
+                                                    hx-delete="@Url.Action("DeletePart", new { id = part.Id })"
+                                                    hx-confirm="Delete the part @part.Name?"
+                                                    hx-swap="none">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2">Parts value</td>
+                                <td class="num">@Model.PartsValue.ToString("N2")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="aq-card h-100">
+            <div class="aq-card-header"><h2 class="aq-card-title">Maintenance history</h2></div>
+            @if (Model.Maintenance.Count == 0)
+            {
+                <div class="aq-empty py-4"><div class="aq-empty-text">No maintenance recorded yet.</div></div>
+            }
+            else
+            {
+                <div class="aq-table-wrap">
+                    <table class="table aq-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>What was done</th>
+                                <th>By</th>
+                                <th class="text-end">Cost</th>
+                                <th class="text-center">Next due</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var record in Model.Maintenance)
+                            {
+                                <tr>
+                                    <td>@record.MaintenanceDate.ToString("dd MMM yyyy")</td>
+                                    <td><span class="aq-badge aq-badge-neutral">@record.MaintenanceType</span></td>
+                                    <td class="text-muted-2">@(record.Description ?? "-")</td>
+                                    <td class="text-muted-2">@(record.PerformedBy ?? "-")</td>
+                                    <td class="num">@record.Cost.ToString("N2")</td>
+                                    <td class="text-center">
+                                        @(record.NextDueDate?.ToString("dd MMM yyyy") ?? "-")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4">Total maintenance</td>
+                                <td class="num">@Model.MaintenanceCost.ToString("N2")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

@@ -9,6 +9,9 @@
 
     var isAdmin = User.IsInRole(Roles.Admin);
     var canManage = User.IsInRole(Roles.Admin) || User.IsInRole(Roles.Manager);
+
+    var displayName = User.Identity?.Name ?? "User";
+    var role = isAdmin ? "Admin" : User.IsInRole(Roles.Manager) ? "Manager" : User.IsInRole(Roles.Worker) ? "Worker" : "User";
 }
 <aside class="aq-sidebar">
     <a class="aq-brand" asp-controller="Dashboard" asp-action="Index">
@@ -96,4 +99,22 @@
             </a>
         }
     </nav>
+
+    @* Pinned to the bottom of the rail regardless of how many links are above it,
+       and always reachable without scrolling the nav list first. *@
+    <div class="aq-sidebar-footer">
+        <div class="aq-sidebar-user">
+            <i class="bi bi-person-circle"></i>
+            <span class="text-truncate">
+                <span class="aq-sidebar-user-name text-truncate">@displayName</span>
+                <span class="aq-sidebar-user-role">@role</span>
+            </span>
+        </div>
+        <form asp-controller="Account" asp-action="Logout" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="aq-sidebar-logout">
+                <i class="bi bi-box-arrow-right"></i> Sign out
+            </button>
+        </form>
+    </div>
 </aside>

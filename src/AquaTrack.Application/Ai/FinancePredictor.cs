@@ -104,6 +104,25 @@ public class FinancePredictor(IApplicationDbContext db) : IFinancePredictor
         var weight = Math.Clamp(line.RSquared, 0d, 1d);
         var blended = trendValue * weight + movingAverage * (1 - weight);
 
-        return Math.Round((decimal)Math.Max(0d, blended), 2);
+        return Math.Round((decimal)Constrain(blended, movingAverage), 2);
+    }
+
+    /// <summary>
+    /// Keeps a projection within a sensible distance of recent reality.
+    ///
+    /// A straight line fitted to a handful of months extrapolates without limit: a few declining
+    /// months project through zero and into negative territory, which would have the farm predicted
+    /// to earn nothing at all while still paying for feed. The trend is allowed to set the
+    /// direction, but not to leave the neighbourhood of what the farm has actually been doing.
+    /// </summary>
+    private static double Constrain(double projected, double recentAverage)
+    {
+        // With no recent activity there is no neighbourhood to stay in; zero is the honest answer.
+        if (recentAverage <= 0) return Math.Max(0d, projected);
+
+        const double floorFactor = 0.4d;
+        const double ceilingFactor = 2.0d;
+
+        return Math.Clamp(projected, recentAverage * floorFactor, recentAverage * ceilingFactor);
     }
 }

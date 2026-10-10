@@ -11,11 +11,19 @@
 
     /* ------------------------------------------------------------ toasts -- */
 
-    const TOAST_TIMEOUT = 4000;
+    // An error stays up longer, because it usually asks the reader to do something.
+    const TOAST_TIMEOUT = { success: 3500, info: 4000, warning: 6000, danger: 7000 };
 
-    AquaTrack.toast = function (message, level) {
-        if (!message) return;
+    const TOAST_STYLE = {
+        success: { icon: 'bi-check-lg', title: 'Saved' },
+        info: { icon: 'bi-info-lg', title: 'Note' },
+        warning: { icon: 'bi-exclamation-lg', title: 'Check this' },
+        danger: { icon: 'bi-x-lg', title: 'Could not save' }
+    };
 
+    const MAX_VISIBLE_TOASTS = 4;
+
+    function toastHost() {
         let host = document.getElementById('aq-toasts');
         if (!host) {
             host = document.createElement('div');
@@ -23,28 +31,110 @@
             host.className = 'aq-toasts';
             document.body.appendChild(host);
         }
+        return host;
+    }
+
+    function dismissToast(el) {
+        if (!el || el.classList.contains('leaving')) return;
+
+        el.classList.add('leaving');
+        el.addEventListener('animationend', () => el.remove(), { once: true });
+        // Belt and braces: if the animation never fires, still clean up.
+        setTimeout(() => el.remove(), 400);
+    }
+
+    /**
+     * Shows a toast. `level` is success | info | warning | danger.
+     * A `title` overrides the default heading for the level.
+     */
+    AquaTrack.toast = function (message, level, title) {
+        if (!message) return;
+
+        level = TOAST_STYLE[level] ? level : 'success';
+
+        const host = toastHost();
+        const style = TOAST_STYLE[level];
+        const timeout = TOAST_TIMEOUT[level];
+
+        // Repeating the same message stacks noise rather than information.
+        const duplicate = Array.from(host.children).find(function (child) {
+            return child.dataset.message === message && !child.classList.contains('leaving');
+        });
+
+        if (duplicate) {
+            duplicate.classList.remove('aq-toast-pulse');
+            void duplicate.offsetWidth;
+            duplicate.classList.add('aq-toast-pulse');
+            return;
+        }
 
         const el = document.createElement('div');
-        el.className = 'aq-toast ' + (level || 'success');
+        el.className = 'aq-toast ' + level;
+        el.dataset.message = message;
+        el.setAttribute('role', level === 'danger' ? 'alert' : 'status');
+
+        const icon = document.createElement('div');
+        icon.className = 'aq-toast-icon';
+        icon.innerHTML = '<i class="bi ' + style.icon + '"></i>';
+        el.appendChild(icon);
+
+        const body = document.createElement('div');
+        body.className = 'aq-toast-body';
+
+        const heading = document.createElement('div');
+        heading.className = 'aq-toast-title';
+        heading.textContent = title || style.title;
+        body.appendChild(heading);
 
         const text = document.createElement('div');
+        text.className = 'aq-toast-text';
         text.textContent = message;
-        el.appendChild(text);
+        body.appendChild(text);
+
+        el.appendChild(body);
 
         const close = document.createElement('button');
         close.type = 'button';
         close.className = 'aq-toast-close';
+        close.setAttribute('aria-label', 'Dismiss');
         close.innerHTML = '&times;';
-        close.addEventListener('click', () => el.remove());
+        close.addEventListener('click', () => dismissToast(el));
         el.appendChild(close);
 
+        const timer = document.createElement('div');
+        timer.className = 'aq-toast-timer';
+        timer.style.animationDuration = timeout + 'ms';
+        el.appendChild(timer);
+
         host.appendChild(el);
-        setTimeout(() => el.remove(), TOAST_TIMEOUT);
+
+        // Keep the stack short; the oldest has been on screen longest.
+        while (host.children.length > MAX_VISIBLE_TOASTS) {
+            dismissToast(host.firstElementChild);
+        }
+
+        let remaining = setTimeout(() => dismissToast(el), timeout);
+
+        // Hovering pauses the countdown, so a long message can actually be read.
+        el.addEventListener('mouseenter', function () {
+            clearTimeout(remaining);
+            timer.style.animationPlayState = 'paused';
+        });
+
+        el.addEventListener('mouseleave', function () {
+            timer.style.animationPlayState = 'running';
+            remaining = setTimeout(() => dismissToast(el), 1500);
+        });
+    };
+
+    AquaTrack.dismissAllToasts = function () {
+        const host = document.getElementById('aq-toasts');
+        if (host) Array.from(host.children).forEach(dismissToast);
     };
 
     document.body.addEventListener('aquatrack:toast', function (event) {
         const detail = event.detail || {};
-        AquaTrack.toast(detail.message, detail.level);
+        AquaTrack.toast(detail.message, detail.level, detail.title);
     });
 
     /* ------------------------------------------------------------- modal -- */
@@ -75,12 +165,25 @@
         clear: function () {
             const content = document.getElementById('aq-modal-content');
             if (content) content.innerHTML = '';
+        },
+
+        // A form partial can opt into a wider dialog with data-modal-size="lg|xl" on its
+        // root element (see Sales/Purchases line-item forms). Reset first so a small form
+        // loaded after a wide one doesn't inherit the previous size.
+        resize: function (content) {
+            const dialog = document.getElementById('aq-modal-dialog');
+            if (!dialog || !content) return;
+
+            dialog.classList.remove('modal-lg', 'modal-xl');
+            const sized = content.querySelector('[data-modal-size]');
+            if (sized) dialog.classList.add('modal-' + sized.getAttribute('data-modal-size'));
         }
     };
 
     // Any element that loads into the modal body opens it once the swap lands.
     document.body.addEventListener('htmx:afterSwap', function (event) {
         if (event.detail.target && event.detail.target.id === 'aq-modal-content') {
+            AquaTrack.modal.resize(event.detail.target);
             AquaTrack.modal.show();
         }
     });
@@ -100,6 +203,64 @@
         if (event.detail.xhr && event.detail.xhr.status === 422) {
             event.detail.shouldSwap = true;
             event.detail.isError = false;
+        }
+    });
+
+    /**
+     * Reads the errors out of a freshly swapped form and raises a toast for them.
+     *
+     * The form already shows errors inline, but a long form can push the offending field off
+     * screen, and a modal body scrolls independently. Surfacing the first error as a toast means
+     * a rejected save is never silent, whatever the page looks like.
+     */
+    function announceValidation(root) {
+        if (!root || !root.querySelectorAll) return;
+
+        // Field-level errors that did render inline — the specific, actionable ones.
+        const fieldMessages = [];
+        root.querySelectorAll('.field-validation-error').forEach(function (span) {
+            const text = span.textContent.trim();
+            if (text) fieldMessages.push(text);
+        });
+
+        const messages = [];
+
+        // Form-level errors, which have no inline slot of their own. The generic
+        // "check the highlighted fields" stand-in (data-generic) just restates what the field
+        // messages already say, so once we have those, skip it and show the real text instead.
+        root.querySelectorAll('.alert-danger').forEach(function (alert) {
+            if (alert.hasAttribute('data-generic') && fieldMessages.length) return;
+
+            const items = alert.querySelectorAll('li');
+
+            if (items.length) {
+                items.forEach(li => messages.push(li.textContent.trim()));
+            } else {
+                const text = alert.textContent.trim();
+                if (text) messages.push(text);
+            }
+        });
+
+        messages.push.apply(messages, fieldMessages);
+
+        const unique = messages.filter(function (m, i) { return m && messages.indexOf(m) === i; });
+        if (!unique.length) return;
+
+        AquaTrack.toast(
+            unique.length === 1 ? unique[0] : unique[0] + ' (+' + (unique.length - 1) + ' more)',
+            'warning',
+            'Check your entries');
+
+        // Put the cursor where the problem is, so the fix is one keystroke away.
+        const firstBad = root.querySelector('.input-validation-error, .is-invalid');
+        if (firstBad && typeof firstBad.focus === 'function') {
+            firstBad.focus({ preventScroll: false });
+        }
+    }
+
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.xhr && event.detail.xhr.status === 422) {
+            announceValidation(event.detail.target);
         }
     });
 
@@ -131,15 +292,32 @@
     document.body.addEventListener('htmx:sendError', requestDone);
 
     document.body.addEventListener('htmx:sendError', function () {
-        AquaTrack.toast('Could not reach the server. Check your connection.', 'danger');
+        AquaTrack.toast(
+            'Could not reach the server. Check your connection and try again.',
+            'danger',
+            'Offline');
+    });
+
+    document.body.addEventListener('htmx:timeout', function () {
+        AquaTrack.toast('The server took too long to respond. Try again.', 'danger', 'Timed out');
     });
 
     document.body.addEventListener('htmx:responseError', function (event) {
         const status = event.detail.xhr.status;
-        // 422 is a handled validation response, not an error the user needs told about.
+
+        // 422 is a handled validation response; the swap handler announces it instead.
+        // 401 and 403 redirect to sign-in or the denied page, which explain themselves.
         if (status === 422 || status === 401 || status === 403) return;
 
-        AquaTrack.toast('Something went wrong (HTTP ' + status + ').', 'danger');
+        const message = status === 404
+            ? 'That record no longer exists. The list may be out of date.'
+            : status === 409
+                ? 'Someone else changed this record first. Reload and try again.'
+                : status >= 500
+                    ? 'The server could not complete that request. Nothing was saved.'
+                    : 'That request could not be completed (HTTP ' + status + ').';
+
+        AquaTrack.toast(message, 'danger', 'Request failed');
     });
 
     /* ------------------------------------------------------- confirm hook -- */

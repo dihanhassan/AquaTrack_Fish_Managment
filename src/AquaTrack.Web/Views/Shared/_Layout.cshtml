@@ -51,21 +51,23 @@
         </div>
     </div>
 
-    <div class="aq-toasts" id="aq-toasts">
-        @if (TempData["Toast"] is string flash && flash.Contains('|'))
-        {
-            var parts = flash.Split('|', 2);
-            <div class="aq-toast @parts[0]">
-                <div>@parts[1]</div>
-                <button type="button" class="aq-toast-close" onclick="this.parentElement.remove()">&times;</button>
-            </div>
-        }
-    </div>
+    <div class="aq-toasts" id="aq-toasts"></div>
 
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/htmx/htmx.min.js"></script>
     <script src="~/lib/chartjs/chart.umd.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @* A toast carried across a redirect is handed to the same builder HTMX responses use,
+       so there is one implementation of what a toast looks like. *@
+    @if (TempData["Toast"] is string flash && flash.Contains('|'))
+    {
+        var parts = flash.Split('|', 2);
+        <script>
+            AquaTrack.toast(@Json.Serialize(parts[1]), @Json.Serialize(parts[0]));
+        </script>
+    }
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

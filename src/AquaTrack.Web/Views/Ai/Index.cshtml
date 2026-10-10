@@ -1,0 +1,27 @@
+@model AiInsightsViewModel
+@{
+    ViewData["Title"] = "AI Insights";
+}
+<div class="aq-card mb-3">
+    <div class="aq-filters">
+        <div>
+            <label class="form-label">Pond</label>
+            <select name="pondId" class="form-select form-select-sm"
+                    hx-get="@Url.Action("Panel")"
+                    hx-target="#aq-ai-panel"
+                    hx-swap="outerHTML"
+                    hx-push-url="true">
+                <option value="">All ponds</option>
+                @foreach (var pond in Model.Ponds)
+                {
+                    <option value="@pond.Id" selected="@(Model.PondId == pond.Id)">@pond.Name</option>
+                }
+            </select>
+        </div>
+        <div class="text-muted-2 small ms-2 mb-1">
+            Every figure below is computed from this farm's recorded history, with the reasoning shown.
+        </div>
+    </div>
+</div>
+
+<partial name="_Panel" model="Model" />

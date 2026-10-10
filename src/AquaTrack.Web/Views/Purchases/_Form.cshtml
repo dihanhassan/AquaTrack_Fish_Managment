@@ -1,7 +1,7 @@
 @model PurchaseFormViewModel
 <partial name="_ModalHeader" model="@("New purchase")" />
 
-<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate data-modal-size="lg">
     @Html.AntiForgeryToken()
 
     <div class="modal-body">

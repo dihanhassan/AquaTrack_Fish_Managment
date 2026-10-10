@@ -1,0 +1,62 @@
+@model ReportViewModel
+@{
+    ViewData["Title"] = Model.Table.Title;
+}
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-end">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>All reports
+    </a>
+
+    <div>
+        <label class="form-label">From</label>
+        <input type="date" name="from" class="form-control form-control-sm"
+               value="@Model.From.ToString("yyyy-MM-dd")"
+               hx-get="@Url.Action("Preview", new { kind = Model.Kind })"
+               hx-target="#aq-report-preview"
+               hx-swap="outerHTML"
+               hx-include="[name=to]"
+               hx-push-url="true" />
+    </div>
+    <div>
+        <label class="form-label">To</label>
+        <input type="date" name="to" class="form-control form-control-sm"
+               value="@Model.To.ToString("yyyy-MM-dd")"
+               hx-get="@Url.Action("Preview", new { kind = Model.Kind })"
+               hx-target="#aq-report-preview"
+               hx-swap="outerHTML"
+               hx-include="[name=from]"
+               hx-push-url="true" />
+    </div>
+
+    <div class="ms-auto d-flex gap-2">
+        <a class="btn btn-outline-primary btn-sm"
+           asp-action="Export" asp-all-route-data="@ToRoute(Model, ReportFormat.Pdf)">
+            <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+        </a>
+        <a class="btn btn-outline-primary btn-sm"
+           asp-action="Export" asp-all-route-data="@ToRoute(Model, ReportFormat.Excel)">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel
+        </a>
+        <a class="btn btn-outline-primary btn-sm"
+           asp-action="Export" asp-all-route-data="@ToRoute(Model, ReportFormat.Csv)">
+            <i class="bi bi-filetype-csv me-1"></i>CSV
+        </a>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+    </div>
+</div>
+
+<partial name="_Preview" model="Model" />
+
+@functions {
+    // asp-all-route-data needs a string dictionary, and the export link must carry the
+    // same range the preview is showing.
+    static Dictionary<string, string> ToRoute(ReportViewModel model, ReportFormat format) => new()
+    {
+        ["kind"] = model.Kind.ToString(),
+        ["format"] = format.ToString(),
+        ["from"] = model.From.ToString("yyyy-MM-dd"),
+        ["to"] = model.To.ToString("yyyy-MM-dd"),
+    };
+}

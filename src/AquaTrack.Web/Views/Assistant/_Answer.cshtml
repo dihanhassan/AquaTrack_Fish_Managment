@@ -1,0 +1,72 @@
+@model AssistantViewModel
+@{
+    var answer = Model.Answer!;
+    var unmatched = answer.Intent == "unknown";
+}
+<div class="aq-card">
+    <div class="aq-card-body">
+        <div class="d-flex gap-3">
+            <div class="aq-stat-icon @(unmatched ? "warning" : "accent")" style="flex-shrink:0">
+                <i class="bi @(unmatched ? "bi-question-lg" : "bi-robot")"></i>
+            </div>
+            <div style="min-width:0" class="flex-grow-1">
+                <div class="text-faint" style="font-size:.76rem">You asked</div>
+                <div class="fw-semibold mb-2">@answer.Question</div>
+
+                <div style="font-size:.92rem;line-height:1.55">@answer.Answer</div>
+
+                @if (!unmatched)
+                {
+                    <div class="text-faint mt-2" style="font-size:.72rem">
+                        Answered from your recorded data &middot; matched to "@answer.Intent"
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (Model.HasData)
+        {
+            <div class="mt-3 pt-3 border-top">
+                <div class="aq-chart-wrap" style="height:240px">
+                    <canvas id="chart-assistant"></canvas>
+                </div>
+            </div>
+
+            <div class="aq-table-wrap mt-3">
+                <table class="table aq-table">
+                    <thead>
+                        <tr><th>Item</th><th class="text-end">Value</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var point in answer.Data)
+                        {
+                            <tr>
+                                <td>@point.Label</td>
+                                <td class="num">@point.Value.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (Model.HasData)
+{
+    <script>
+        (function () {
+            var points = @Json.Serialize(answer.Data.Select(p => new { label = p.Label, value = p.Value }));
+
+            // A handful of categories reads better as a doughnut; a longer series as bars.
+            var type = points.length <= 6 ? 'doughnut' : 'bar';
+
+            AquaTrack.chart('chart-assistant', type,
+                points.map(function (p) { return p.label; }),
+                [{ label: 'Value', data: points.map(function (p) { return p.value; }) }],
+                type === 'doughnut'
+                    ? { plugins: { legend: { position: 'bottom' } }, cutout: '55%' }
+                    : { plugins: { legend: { display: false } } });
+        })();
+    </script>
+}

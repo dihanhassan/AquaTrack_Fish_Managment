@@ -16,48 +16,72 @@
 </head>
 <body>
     <div class="aq-auth">
-        <div class="aq-auth-card">
-            <div class="text-center mb-4">
-                <div style="font-size:2.4rem;line-height:1">&#128031;</div>
-                <h1 class="h4 mt-2 mb-1">AquaTrack</h1>
-                <p class="text-muted-2 small mb-0">Fish Farm &amp; Cash Management</p>
+        <div class="aq-auth-form">
+            <div class="aq-auth-card">
+                <div class="aq-auth-brand">
+                    <div class="aq-auth-brand-icon">&#128031;</div>
+                    <div>
+                        <h1>AquaTrack</h1>
+                        <p class="text-muted-2 small mb-0">Fish Farm &amp; Cash Management</p>
+                    </div>
+                </div>
+
+                <form asp-action="Login" method="post">
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    @if (hasErrors)
+                    {
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 small"></div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="Email" class="form-control" autocomplete="username" autofocus />
+                        </div>
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                            <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" />
+                        </div>
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label small"></label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Sign in
+                    </button>
+                </form>
             </div>
+        </div>
 
-            <form asp-action="Login" method="post">
-                <input type="hidden" asp-for="ReturnUrl" />
-
-                @if (hasErrors)
-                {
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 px-3 small"></div>
-                }
-
-                <div class="mb-3">
-                    <label asp-for="Email" class="form-label"></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                        <input asp-for="Email" class="form-control" autocomplete="username" autofocus />
-                    </div>
-                    <span asp-validation-for="Email" class="field-validation-error"></span>
+        <div class="aq-auth-visual">
+            <img src="~/images/pond-ecosystem.jpg" alt="A Bangladeshi freshwater pond, with its fish, feed chain and aquatic life shown in cross-section" class="aq-auth-visual-img" />
+            <div class="aq-auth-visual-content">
+                <div class="aq-auth-visual-tags">
+                    <span>Ponds</span>
+                    <span>Stock</span>
+                    <span>Feed</span>
+                    <span>Cash</span>
+                    <span>AI Insights</span>
                 </div>
-
-                <div class="mb-3">
-                    <label asp-for="Password" class="form-label"></label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                        <input asp-for="Password" class="form-control" type="password" autocomplete="current-password" />
-                    </div>
-                    <span asp-validation-for="Password" class="field-validation-error"></span>
+                <div class="aq-auth-visual-caption">
+                    <h2>Run the whole farm from one screen.</h2>
+                    <p>
+                        Every pond, batch, feeding and taka — tracked from the water to the cash book,
+                        with AI advice drawn from your own farm's history.
+                    </p>
                 </div>
-
-                <div class="form-check mb-3">
-                    <input asp-for="RememberMe" class="form-check-input" />
-                    <label asp-for="RememberMe" class="form-check-label small"></label>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-box-arrow-in-right me-1"></i>Sign in
-                </button>
-            </form>
+            </div>
         </div>
     </div>
 </body>
