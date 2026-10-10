@@ -1,31 +1,55 @@
 @*
-    Server-side errors that are not tied to one field. HTMX re-renders the whole
-    form partial on a 422, so this is the only place a form-level error appears.
+    Server-side errors. HTMX re-renders the whole form partial on a 422, so this is the one place
+    a failure surfaces.
+
+    It deliberately covers more than form-level errors: a binding failure on a field inside a
+    repeating row has no inline slot to render into, so without this the form would be rejected
+    with nothing on screen to explain why.
 *@
 @{
-    var errors = ViewData.ModelState
-        .Where(kv => string.IsNullOrEmpty(kv.Key) || kv.Key == "__form")
-        .SelectMany(kv => kv.Value!.Errors)
-        .Select(e => e.ErrorMessage)
-        .Where(m => !string.IsNullOrWhiteSpace(m))
+    var entries = ViewData.ModelState
+        .SelectMany(kv => kv.Value!.Errors.Select(e => new
+        {
+            Field = kv.Key,
+            Message = string.IsNullOrWhiteSpace(e.ErrorMessage)
+                ? "This value is not valid."
+                : e.ErrorMessage,
+        }))
         .ToList();
+
+    // Fields with their own asp-validation-for span already show inline; summarise only
+    // form-level errors and anything inside a repeating row.
+    var summarised = entries
+        .Where(e => string.IsNullOrEmpty(e.Field) || e.Field == "__form" || e.Field.Contains('['))
+        .Select(e => e.Message)
+        .Distinct()
+        .ToList();
+
+    var inlineOnly = entries.Count > 0 && summarised.Count == 0;
 }
-@if (errors.Count > 0)
+@if (summarised.Count > 0)
 {
     <div class="alert alert-danger py-2 px-3 small mb-3">
         <i class="bi bi-exclamation-triangle-fill me-1"></i>
-        @if (errors.Count == 1)
+        @if (summarised.Count == 1)
         {
-            @errors[0]
+            @summarised[0]
         }
         else
         {
             <ul class="mb-0 ps-3">
-                @foreach (var error in errors)
+                @foreach (var message in summarised)
                 {
-                    <li>@error</li>
+                    <li>@message</li>
                 }
             </ul>
         }
+    </div>
+}
+else if (inlineOnly)
+{
+    <div class="alert alert-danger py-2 px-3 small mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        Some entries need attention. Check the highlighted fields below.
     </div>
 }

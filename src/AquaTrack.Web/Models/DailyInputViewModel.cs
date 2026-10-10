@@ -23,19 +23,25 @@ public class DailyFeedLineViewModel
 {
     public int FeedItemId { get; set; }
 
+    /// <summary>Nullable so an untouched row binds as empty rather than failing the whole form.</summary>
     [Range(0, 1_000_000, ErrorMessage = "Enter a quantity of zero or more.")]
-    public decimal Quantity { get; set; }
+    public decimal? Quantity { get; set; }
+
+    public bool IsFilled => FeedItemId > 0 && Quantity is > 0;
 }
 
 public class DailyMedicineLineViewModel
 {
     public int MedicineId { get; set; }
 
+    /// <summary>Nullable for the same reason as the feed line above.</summary>
     [Range(0, 1_000_000, ErrorMessage = "Enter a quantity of zero or more.")]
-    public decimal Quantity { get; set; }
+    public decimal? Quantity { get; set; }
 
     [StringLength(250)]
     public string? Purpose { get; set; }
+
+    public bool IsFilled => MedicineId > 0 && Quantity is > 0;
 }
 
 /// <summary>
@@ -136,8 +142,8 @@ public class DailyInputViewModel
 
     /// <summary>True when at least one section was filled in, so an empty save can be rejected.</summary>
     public bool HasAnything =>
-        FeedLines.Any(l => l.FeedItemId > 0 && l.Quantity > 0)
-        || MedicineLines.Any(l => l.MedicineId > 0 && l.Quantity > 0)
+        FeedLines.Any(l => l.IsFilled)
+        || MedicineLines.Any(l => l.IsFilled)
         || MortalityCount is > 0
         || SampleAvgWeightGram is > 0
         || (SaleQuantityKg is > 0 && SaleUnitPrice is > 0)
@@ -156,15 +162,15 @@ public class DailyInputViewModel
         FishStockId = FishStockId,
 
         FeedLines = [.. FeedLines
-            .Where(l => l.FeedItemId > 0 && l.Quantity > 0)
-            .Select(l => new DailyFeedLine { FeedItemId = l.FeedItemId, Quantity = l.Quantity })],
+            .Where(l => l.IsFilled)
+            .Select(l => new DailyFeedLine { FeedItemId = l.FeedItemId, Quantity = l.Quantity!.Value })],
 
         MedicineLines = [.. MedicineLines
-            .Where(l => l.MedicineId > 0 && l.Quantity > 0)
+            .Where(l => l.IsFilled)
             .Select(l => new DailyMedicineLine
             {
                 MedicineId = l.MedicineId,
-                Quantity = l.Quantity,
+                Quantity = l.Quantity!.Value,
                 Purpose = l.Purpose,
             })],
 
