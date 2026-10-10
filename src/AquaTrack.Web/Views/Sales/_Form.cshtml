@@ -1,0 +1,188 @@
+@model SaleFormViewModel
+<partial name="_ModalHeader" model="@("New sale")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-7">
+                <label asp-for="CustomerId" class="form-label"></label>
+                <select asp-for="CustomerId" class="form-select">
+                    <option value="0">Walk-in customer</option>
+                    @foreach (var customer in Model.Customers)
+                    {
+                        <option value="@customer.Id" selected="@(Model.CustomerId == customer.Id)">@customer.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="SaleDate" class="form-label"></label>
+                <input asp-for="SaleDate" class="form-control" type="date"
+                       max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="SaleDate" class="field-validation-error"></span>
+            </div>
+        </div>
+
+        <div class="aq-form-section">Lines</div>
+
+        <div id="aq-sale-lines" data-line-container>
+            @for (var i = 0; i < Model.Items.Count; i++)
+            {
+                var line = Model.Items[i];
+                <div class="row g-2 mb-2 align-items-end" data-row data-row-index="@i">
+                    <div class="col-md-3">
+                        <label class="form-label">Species</label>
+                        <select name="Items[@i].FishTypeId" class="form-select form-select-sm">
+                            <option value="0">Choose</option>
+                            @foreach (var species in Model.Species)
+                            {
+                                <option value="@species.Id" selected="@(line.FishTypeId == species.Id)">@species.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Pond / batch</label>
+                        @* Reads its own value at request time, so the batch list follows the pond. *@
+                        <select name="Items[@i].PondId" class="form-select form-select-sm mb-1"
+                                hx-get="@Url.Action("BatchOptions")"
+                                hx-target="#aq-batch-@i"
+                                hx-swap="innerHTML"
+                                hx-vals='js:{pondId: event.target.value, index: @i}'>
+                            <option value="0">Any pond</option>
+                            @foreach (var pond in Model.Ponds)
+                            {
+                                <option value="@pond.Id" selected="@(line.PondId == pond.Id)">@pond.Name</option>
+                            }
+                        </select>
+                        <select name="Items[@i].FishStockId" id="aq-batch-@i" class="form-select form-select-sm">
+                            <option value="0">Not from a batch</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Qty (kg)</label>
+                        <input name="Items[@i].QuantityKg" class="form-control form-control-sm"
+                               type="number" step="0.01" min="0" data-qty
+                               value="@(line.QuantityKg is > 0 ? line.QuantityKg.Value.ToString("0.##") : "")" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Price/kg</label>
+                        <input name="Items[@i].UnitPrice" class="form-control form-control-sm"
+                               type="number" step="0.01" min="0" data-price
+                               value="@(line.UnitPrice is > 0 ? line.UnitPrice.Value.ToString("0.##") : "")" />
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end gap-1">
+                        <div class="flex-grow-1">
+                            <label class="form-label">Total</label>
+                            <div class="form-control form-control-sm bg-light num" data-line-total>0.00</div>
+                        </div>
+                        <button type="button" class="btn btn-icon danger mb-1" title="Remove line"
+                                onclick="AquaTrack.removeRow(this, 'aq-sale-lines')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+                onclick="AquaTrack.addRow('aq-sale-lines', 'aq-sale-line-template')">
+            <i class="bi bi-plus-lg me-1"></i>Add line
+        </button>
+
+        <div class="aq-form-section">Totals and payment</div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Subtotal</label>
+                <div class="form-control bg-light num fw-semibold" data-subtotal>0.00</div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Discount" class="form-label"></label>
+                <input asp-for="Discount" class="form-control" type="number" step="0.01" min="0" data-discount />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Grand total</label>
+                <div class="form-control bg-light num fw-semibold" data-grandtotal>0.00</div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="PaymentMethod" class="form-label"></label>
+                <select asp-for="PaymentMethod" class="form-select"
+                        asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="PaidAmount" class="form-label"></label>
+                <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" min="0" data-paid />
+                <div class="form-text">Leave below the total to record a customer due.</div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Due</label>
+                <div class="form-control bg-light num fw-semibold" data-due>0.00</div>
+            </div>
+            <div class="col-md-5">
+                <label asp-for="Notes" class="form-label"></label>
+                <input asp-for="Notes" class="form-control" />
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record sale")" />
+</form>
+
+@* Cloned by AquaTrack.addRow; indexes are rewritten after insertion. *@
+<template id="aq-sale-line-template">
+    <div class="row g-2 mb-2 align-items-end" data-row>
+        <div class="col-md-3">
+            <label class="form-label">Species</label>
+            <select name="Items[0].FishTypeId" class="form-select form-select-sm">
+                <option value="0">Choose</option>
+                @foreach (var species in Model.Species)
+                {
+                    <option value="@species.Id">@species.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Pond / batch</label>
+            <select name="Items[0].PondId" class="form-select form-select-sm mb-1">
+                <option value="0">Any pond</option>
+                @foreach (var pond in Model.Ponds)
+                {
+                    <option value="@pond.Id">@pond.Name</option>
+                }
+            </select>
+            <select name="Items[0].FishStockId" class="form-select form-select-sm">
+                <option value="0">Not from a batch</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Qty (kg)</label>
+            <input name="Items[0].QuantityKg" class="form-control form-control-sm"
+                   type="number" step="0.01" min="0" data-qty />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Price/kg</label>
+            <input name="Items[0].UnitPrice" class="form-control form-control-sm"
+                   type="number" step="0.01" min="0" data-price />
+        </div>
+        <div class="col-md-2 d-flex align-items-end gap-1">
+            <div class="flex-grow-1">
+                <label class="form-label">Total</label>
+                <div class="form-control form-control-sm bg-light num" data-line-total>0.00</div>
+            </div>
+            <button type="button" class="btn btn-icon danger mb-1" title="Remove line"
+                    onclick="AquaTrack.removeRow(this, 'aq-sale-lines')">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script>AquaTrack.recalcTotals('aq-sale-lines');</script>

@@ -1,0 +1,191 @@
+@model PurchaseFormViewModel
+<partial name="_ModalHeader" model="@("New purchase")" />
+
+<form hx-post="@Url.Action("Save")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-5">
+                <label asp-for="SupplierId" class="form-label"></label>
+                <select asp-for="SupplierId" class="form-select">
+                    <option value="0">Not recorded</option>
+                    @foreach (var supplier in Model.Suppliers)
+                    {
+                        <option value="@supplier.Id" selected="@(Model.SupplierId == supplier.Id)">@supplier.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="PurchaseDate" class="form-label"></label>
+                <input asp-for="PurchaseDate" class="form-control" type="date"
+                       max="@DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")" />
+                <span asp-validation-for="PurchaseDate" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="InvoiceNo" class="form-label"></label>
+                <input asp-for="InvoiceNo" class="form-control" />
+            </div>
+        </div>
+
+        <div class="aq-form-section">Lines</div>
+
+        <div id="aq-purchase-lines" data-line-container>
+            @for (var i = 0; i < Model.Items.Count; i++)
+            {
+                var line = Model.Items[i];
+                <div class="row g-2 mb-2 align-items-end" data-row data-row-index="@i">
+                    <div class="col-md-2">
+                        <label class="form-label">Type</label>
+                        @* Choosing a type reloads the item dropdown beside it. *@
+                        <select name="Items[@i].ItemType" class="form-select form-select-sm"
+                                hx-get="@Url.Action("TargetOptions")"
+                                hx-target="#aq-target-@i"
+                                hx-swap="innerHTML"
+                                hx-vals='js:{itemType: event.target.value, index: @i}'
+                                asp-items="Html.GetEnumSelectList<PurchaseItemType>()">
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Item</label>
+                        <select name="Items[@i].TargetId" id="aq-target-@i" class="form-select form-select-sm">
+                            <option value="0">Choose</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Description</label>
+                        <input name="Items[@i].Description" class="form-control form-control-sm"
+                               value="@line.Description" placeholder="What was bought" />
+                    </div>
+
+                    <div class="col-md-1">
+                        <label class="form-label">Qty</label>
+                        <input name="Items[@i].Quantity" class="form-control form-control-sm"
+                               type="number" step="0.01" min="0" data-qty
+                               value="@(line.Quantity is > 0 ? line.Quantity.Value.ToString("0.##") : "")" />
+                    </div>
+
+                    <div class="col-md-1">
+                        <label class="form-label">Price</label>
+                        <input name="Items[@i].UnitPrice" class="form-control form-control-sm"
+                               type="number" step="0.01" min="0" data-price
+                               value="@(line.UnitPrice is > 0 ? line.UnitPrice.Value.ToString("0.##") : "")" />
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end gap-1">
+                        <div class="flex-grow-1">
+                            <label class="form-label">Total</label>
+                            <div class="form-control form-control-sm bg-light num" data-line-total>0.00</div>
+                        </div>
+                        <button type="button" class="btn btn-icon danger mb-1" title="Remove line"
+                                onclick="AquaTrack.removeRow(this, 'aq-purchase-lines')">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <button type="button" class="btn btn-outline-secondary btn-sm"
+                onclick="AquaTrack.addRow('aq-purchase-lines', 'aq-purchase-line-template')">
+            <i class="bi bi-plus-lg me-1"></i>Add line
+        </button>
+
+        <div class="aq-form-section">Totals and payment</div>
+
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Subtotal</label>
+                <div class="form-control bg-light num fw-semibold" data-subtotal>0.00</div>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="Discount" class="form-label"></label>
+                <input asp-for="Discount" class="form-control" type="number" step="0.01" min="0" data-discount />
+            </div>
+            <div class="col-md-3">
+                <label asp-for="TransportCost" class="form-label"></label>
+                <input asp-for="TransportCost" class="form-control" type="number" step="0.01" min="0" data-transport />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Grand total</label>
+                <div class="form-control bg-light num fw-semibold" data-grandtotal>0.00</div>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="PaymentMethod" class="form-label"></label>
+                <select asp-for="PaymentMethod" class="form-select"
+                        asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="PaidAmount" class="form-label"></label>
+                <input asp-for="PaidAmount" class="form-control" type="number" step="0.01" min="0" data-paid />
+                <div class="form-text">Leave below the total to record a supplier due.</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Due</label>
+                <div class="form-control bg-light num fw-semibold" data-due>0.00</div>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <input asp-for="Notes" class="form-control" />
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Record purchase")" />
+</form>
+
+<template id="aq-purchase-line-template">
+    <div class="row g-2 mb-2 align-items-end" data-row>
+        <div class="col-md-2">
+            <label class="form-label">Type</label>
+            <select name="Items[0].ItemType" class="form-select form-select-sm"
+                    asp-items="Html.GetEnumSelectList<PurchaseItemType>()"></select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Item</label>
+            <select name="Items[0].TargetId" class="form-select form-select-sm">
+                <option value="0">Choose</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Description</label>
+            <input name="Items[0].Description" class="form-control form-control-sm" placeholder="What was bought" />
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Qty</label>
+            <input name="Items[0].Quantity" class="form-control form-control-sm"
+                   type="number" step="0.01" min="0" data-qty />
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">Price</label>
+            <input name="Items[0].UnitPrice" class="form-control form-control-sm"
+                   type="number" step="0.01" min="0" data-price />
+        </div>
+        <div class="col-md-2 d-flex align-items-end gap-1">
+            <div class="flex-grow-1">
+                <label class="form-label">Total</label>
+                <div class="form-control form-control-sm bg-light num" data-line-total>0.00</div>
+            </div>
+            <button type="button" class="btn btn-icon danger mb-1" title="Remove line"
+                    onclick="AquaTrack.removeRow(this, 'aq-purchase-lines')">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+</template>
+
+<script>
+    AquaTrack.recalcTotals('aq-purchase-lines');
+
+    // Load the item dropdown for the first line, which starts on the default type.
+    (function () {
+        var first = document.querySelector('#aq-purchase-lines [name="Items[0].ItemType"]');
+        if (first) htmx.trigger(first, 'change');
+    })();
+</script>

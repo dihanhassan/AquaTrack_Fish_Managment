@@ -1,0 +1,14 @@
+@model IReadOnlyList<SelectOption>
+@*
+    The item dropdown contents for one purchase line, swapped in when its type changes.
+    Feed and medicine lines must point at a real item, because that is what receives the stock.
+*@
+@{
+    var selected = ViewData["Selected"] as int?;
+    var required = ViewData["Required"] as bool? ?? false;
+}
+<option value="0">@(required ? "Choose an item" : "Not applicable")</option>
+@foreach (var option in Model)
+{
+    <option value="@option.Id" selected="@(selected == option.Id)">@option.Name</option>
+}

@@ -1,0 +1,13 @@
+@model IReadOnlyList<SelectOption>
+@*
+    The batch dropdown contents for one sale line, swapped in when its pond changes.
+    Only the options are returned; the select itself stays put so its name binding survives.
+*@
+@{
+    var selected = ViewData["Selected"] as int?;
+}
+<option value="0">Not from a batch</option>
+@foreach (var batch in Model)
+{
+    <option value="@batch.Id" selected="@(selected == batch.Id)">@batch.Name</option>
+}

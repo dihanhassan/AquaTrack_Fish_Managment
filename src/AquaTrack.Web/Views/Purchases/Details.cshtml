@@ -1,0 +1,119 @@
+@model Purchase
+@{
+    ViewData["Title"] = $"Purchase {Model.PurchaseNo}";
+}
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">
+        <i class="bi bi-arrow-left me-1"></i>All purchases
+    </a>
+    @if (Model.DueAmount > 0)
+    {
+        <button type="button" class="btn btn-primary btn-sm"
+                hx-get="@Url.Action("PaymentForm", new { id = Model.Id })" hx-target="#aq-modal-content">
+            <i class="bi bi-cash-coin me-1"></i>Pay supplier
+        </button>
+    }
+    <button type="button" class="btn btn-outline-secondary btn-sm ms-auto" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Print
+    </button>
+</div>
+
+<div class="aq-card">
+    <div class="aq-card-body">
+        <div class="d-flex justify-content-between flex-wrap gap-3 mb-4">
+            <div>
+                <div class="aq-stat-label">Purchase</div>
+                <div class="h5 mb-1">@Model.PurchaseNo</div>
+                <div class="text-muted-2 small">@Model.PurchaseDate.ToString("dd MMMM yyyy")</div>
+                @if (!string.IsNullOrWhiteSpace(Model.InvoiceNo))
+                {
+                    <div class="text-muted-2 small">Supplier invoice: @Model.InvoiceNo</div>
+                }
+            </div>
+            <div class="text-end">
+                <div class="aq-stat-label">Supplier</div>
+                <div class="fw-semibold">@(Model.Supplier?.Name ?? "-")</div>
+                @if (Model.Supplier is { Phone: not null })
+                {
+                    <div class="text-muted-2 small">@Model.Supplier.Phone</div>
+                }
+            </div>
+        </div>
+
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Item</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Unit price</th>
+                        <th class="text-end">Line total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var target = item.FeedItem?.Name ?? item.Medicine?.Name;
+
+                        <tr>
+                            <td><span class="aq-badge aq-badge-neutral">@item.ItemType</span></td>
+                            <td>
+                                <span class="fw-semibold">@item.Description</span>
+                                @if (!string.IsNullOrWhiteSpace(target) && target != item.Description)
+                                {
+                                    <div class="text-faint" style="font-size:.74rem">Stock item: @target</div>
+                                }
+                            </td>
+                            <td class="num">@item.Quantity.ToString("N2") <span class="text-faint">@item.Unit</span></td>
+                            <td class="num">@item.UnitPrice.ToString("N2")</td>
+                            <td class="num fw-semibold">@item.LineTotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="row justify-content-end mt-3">
+            <div class="col-md-5">
+                <dl class="row mb-0 small">
+                    <dt class="col-7 text-muted-2 fw-normal">Subtotal</dt>
+                    <dd class="col-5 num mb-1">@Model.SubTotal.ToString("N2")</dd>
+
+                    @if (Model.Discount > 0)
+                    {
+                        <dt class="col-7 text-muted-2 fw-normal">Discount</dt>
+                        <dd class="col-5 num mb-1">-@Model.Discount.ToString("N2")</dd>
+                    }
+
+                    @if (Model.TransportCost > 0)
+                    {
+                        <dt class="col-7 text-muted-2 fw-normal">Transport</dt>
+                        <dd class="col-5 num mb-1">@Model.TransportCost.ToString("N2")</dd>
+                    }
+
+                    <dt class="col-7 fw-semibold border-top pt-2">Grand total</dt>
+                    <dd class="col-5 num fw-semibold border-top pt-2">@Model.GrandTotal.ToString("N2")</dd>
+
+                    <dt class="col-7 text-muted-2 fw-normal">Paid (@Model.PaymentMethod)</dt>
+                    <dd class="col-5 num mb-1">@Model.PaidAmount.ToString("N2")</dd>
+
+                    <dt class="col-7 fw-semibold @(Model.DueAmount > 0 ? "text-danger" : "text-success")">
+                        @(Model.DueAmount > 0 ? "Outstanding" : "Settled")
+                    </dt>
+                    <dd class="col-5 num fw-semibold @(Model.DueAmount > 0 ? "text-danger" : "text-success")">
+                        @Model.DueAmount.ToString("N2")
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Notes))
+        {
+            <div class="mt-3 pt-3 border-top">
+                <div class="aq-stat-label">Notes</div>
+                <div class="text-muted-2 small">@Model.Notes</div>
+            </div>
+        }
+    </div>
+</div>

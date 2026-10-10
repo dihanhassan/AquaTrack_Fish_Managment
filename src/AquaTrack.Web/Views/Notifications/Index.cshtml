@@ -1,0 +1,97 @@
+@model IReadOnlyList<Notification>
+@{
+    ViewData["Title"] = "Alerts";
+
+    Func<NotificationSeverity, string> tone = severity => severity switch
+    {
+        NotificationSeverity.Critical => "danger",
+        NotificationSeverity.Warning => "warning",
+        NotificationSeverity.Success => "success",
+        _ => "info",
+    };
+
+    Func<NotificationSeverity, string> icon = severity => severity switch
+    {
+        NotificationSeverity.Critical => "bi-exclamation-octagon-fill",
+        NotificationSeverity.Warning => "bi-exclamation-triangle-fill",
+        NotificationSeverity.Success => "bi-check-circle-fill",
+        _ => "bi-info-circle-fill",
+    };
+
+    var unread = Model.Count(n => !n.IsRead);
+}
+<div class="aq-card">
+    <div class="aq-card-header">
+        <h2 class="aq-card-title">
+            Alerts
+            @if (unread > 0)
+            {
+                <span class="aq-badge aq-badge-danger ms-2">@unread unread</span>
+            }
+        </h2>
+        <div class="ms-auto d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm"
+                    hx-post="@Url.Action("Refresh")" hx-swap="none">
+                <span class="aq-busy spinner-border spinner-border-sm me-1"></span>
+                <i class="bi bi-arrow-clockwise me-1"></i>Check now
+            </button>
+            @if (unread > 0)
+            {
+                <button type="button" class="btn btn-primary btn-sm"
+                        hx-post="@Url.Action("MarkAllRead")" hx-swap="none">
+                    <i class="bi bi-check2-all me-1"></i>Mark all read
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyStateViewModel {
+            Icon = "bi-check2-circle",
+            Title = "All clear",
+            Message = "The system checks stock levels, expiry dates, mortality and costs every time you open the dashboard." })" />
+    }
+    else
+    {
+        <div class="list-group list-group-flush">
+            @foreach (var alert in Model)
+            {
+                <div class="list-group-item d-flex gap-3 py-3 @(alert.IsRead ? "opacity-75" : "")">
+                    <i class="bi @icon(alert.Severity) text-@tone(alert.Severity) fs-5 mt-1"></i>
+
+                    <div class="flex-grow-1" style="min-width:0">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-semibold">@alert.Title</span>
+                            <span class="aq-badge aq-badge-@tone(alert.Severity)">@alert.Severity</span>
+                            <span class="aq-badge aq-badge-neutral">@alert.Type</span>
+                            @if (!alert.IsRead)
+                            {
+                                <span class="aq-badge aq-badge-info">New</span>
+                            }
+                        </div>
+                        <div class="text-muted-2 mt-1" style="font-size:.84rem">@alert.Message</div>
+                        <div class="text-faint mt-1" style="font-size:.74rem">
+                            @alert.RaisedAtUtc.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-1 align-items-start">
+                        @if (!string.IsNullOrWhiteSpace(alert.Link))
+                        {
+                            <a class="btn btn-outline-primary btn-sm" href="@alert.Link">Open</a>
+                        }
+                        @if (!alert.IsRead)
+                        {
+                            <button type="button" class="btn btn-icon" title="Mark as read"
+                                    hx-post="@Url.Action("MarkRead", new { id = alert.Id })"
+                                    hx-swap="none">
+                                <i class="bi bi-check2"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

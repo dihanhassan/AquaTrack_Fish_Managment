@@ -1,0 +1,38 @@
+@model SalePaymentViewModel
+<partial name="_ModalHeader" model="@("Receive payment")" />
+
+<form hx-post="@Url.Action("ReceivePayment")" hx-target="#aq-modal-content" hx-swap="innerHTML" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="SaleId" />
+
+    <div class="modal-body">
+        <partial name="_ValidationSummary" />
+
+        <dl class="row small mb-3">
+            <dt class="col-4 text-muted-2 fw-normal">Invoice</dt>
+            <dd class="col-8 fw-semibold">@Model.InvoiceNo</dd>
+
+            <dt class="col-4 text-muted-2 fw-normal">Customer</dt>
+            <dd class="col-8">@Model.CustomerName</dd>
+
+            <dt class="col-4 text-muted-2 fw-normal">Outstanding</dt>
+            <dd class="col-8 fw-semibold text-danger">@Model.DueAmount.ToString("N2")</dd>
+        </dl>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Amount" class="form-label">Amount received <span class="req">*</span></label>
+                <input asp-for="Amount" class="form-control" type="number" step="0.01" min="0.01"
+                       max="@Model.DueAmount" autofocus />
+                <span asp-validation-for="Amount" class="field-validation-error"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="PaymentMethod" class="form-label"></label>
+                <select asp-for="PaymentMethod" class="form-select"
+                        asp-items="Html.GetEnumSelectList<PaymentMethod>()"></select>
+            </div>
+        </div>
+    </div>
+
+    <partial name="_ModalFooter" model="@("Receive payment")" />
+</form>

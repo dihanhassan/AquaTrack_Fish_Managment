@@ -1,36 +1,19 @@
 @inject INotificationService Notifications
 @{
-    var unread = User.Identity?.IsAuthenticated == true ? await Notifications.GetUnreadCountAsync() : 0;
     var displayName = User.Identity?.Name ?? "User";
     var role = User.IsInRole(Roles.Admin) ? "Admin"
         : User.IsInRole(Roles.Manager) ? "Manager"
         : User.IsInRole(Roles.Worker) ? "Worker" : "User";
+
+    // The bell partial reads this, and is re-rendered on its own by the poll.
+    ViewData["UnreadCount"] = User.Identity?.IsAuthenticated == true
+        ? await Notifications.GetUnreadCountAsync()
+        : 0;
 }
 <div class="d-flex align-items-center gap-2">
     <span class="aq-busy spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
 
-    @* Polls quietly so a new alert appears without the user refreshing. *@
-    <div class="dropdown"
-         hx-get="@Url.Action("Bell", "Notifications")"
-         hx-trigger="every 90s"
-         hx-swap="outerHTML"
-         hx-target="this">
-        <button class="btn btn-icon position-relative" type="button" data-bs-toggle="dropdown"
-                data-bs-auto-close="outside" aria-label="Notifications"
-                hx-get="@Url.Action("Panel", "Notifications")"
-                hx-target="#aq-notification-panel"
-                hx-trigger="click">
-            <i class="bi bi-bell fs-5"></i>
-            @if (unread > 0)
-            {
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                      style="font-size:.6rem">@(unread > 99 ? "99+" : unread.ToString())</span>
-            }
-        </button>
-        <div class="dropdown-menu dropdown-menu-end p-0" style="width:340px" id="aq-notification-panel">
-            <div class="p-3 text-center text-muted-2 small">Loading...</div>
-        </div>
-    </div>
+    <partial name="/Views/Notifications/_Bell.cshtml" />
 
     <div class="dropdown">
         <button class="btn btn-icon d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">

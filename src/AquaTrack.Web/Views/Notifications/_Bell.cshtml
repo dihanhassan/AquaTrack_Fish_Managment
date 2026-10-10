@@ -1,0 +1,28 @@
+@*
+    The topbar bell. Replaces itself on a poll, so a newly raised alert shows up
+    without the user reloading the page.
+*@
+@{
+    var unread = ViewData["UnreadCount"] as int? ?? 0;
+}
+<div class="dropdown"
+     hx-get="@Url.Action("Bell", "Notifications")"
+     hx-trigger="every 90s"
+     hx-swap="outerHTML"
+     hx-target="this">
+    <button class="btn btn-icon position-relative" type="button" data-bs-toggle="dropdown"
+            data-bs-auto-close="outside" aria-label="Notifications"
+            hx-get="@Url.Action("Panel", "Notifications")"
+            hx-target="#aq-notification-panel"
+            hx-trigger="click">
+        <i class="bi bi-bell fs-5"></i>
+        @if (unread > 0)
+        {
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                  style="font-size:.6rem">@(unread > 99 ? "99+" : unread.ToString())</span>
+        }
+    </button>
+    <div class="dropdown-menu dropdown-menu-end p-0" style="width:340px" id="aq-notification-panel">
+        <div class="p-3 text-center text-muted-2 small">Loading...</div>
+    </div>
+</div>

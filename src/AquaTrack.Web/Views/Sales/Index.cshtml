@@ -1,0 +1,53 @@
+@model SaleListViewModel
+@{
+    ViewData["Title"] = "Sales";
+}
+<div class="aq-card">
+    <div class="aq-filters">
+        <div style="max-width:240px" class="flex-grow-1">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" name="search" class="form-control" value="@Model.Query.Search"
+                       placeholder="Invoice or customer"
+                       hx-get="@Url.Action("List")"
+                       hx-target="#aq-sale-table"
+                       hx-swap="outerHTML"
+                       hx-trigger="input changed delay:350ms, search"
+                       hx-include="[data-sale-filter]"
+                       hx-push-url="true" />
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control form-control-sm" data-sale-filter
+                   value="@Model.From?.ToString("yyyy-MM-dd")"
+                   hx-get="@Url.Action("List")" hx-target="#aq-sale-table" hx-swap="outerHTML"
+                   hx-include="[name=search],[data-sale-filter]" hx-push-url="true" />
+        </div>
+        <div>
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control form-control-sm" data-sale-filter
+                   value="@Model.To?.ToString("yyyy-MM-dd")"
+                   hx-get="@Url.Action("List")" hx-target="#aq-sale-table" hx-swap="outerHTML"
+                   hx-include="[name=search],[data-sale-filter]" hx-push-url="true" />
+        </div>
+
+        <div class="form-check mb-1">
+            <input type="checkbox" name="dues" value="true" class="form-check-input" id="sale-dues"
+                   data-sale-filter checked="@Model.OnlyWithDues"
+                   hx-get="@Url.Action("List")" hx-target="#aq-sale-table" hx-swap="outerHTML"
+                   hx-include="[name=search],[data-sale-filter]" hx-push-url="true" />
+            <label class="form-check-label small" for="sale-dues">Unpaid only</label>
+        </div>
+
+        <div class="ms-auto">
+            <button type="button" class="btn btn-primary btn-sm"
+                    hx-get="@Url.Action("Form")" hx-target="#aq-modal-content">
+                <i class="bi bi-plus-lg me-1"></i>New sale
+            </button>
+        </div>
+    </div>
+
+    <partial name="_Table" model="Model" />
+</div>

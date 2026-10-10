@@ -1,0 +1,100 @@
+@model PurchaseListViewModel
+@{
+    var listUrl = Url.Action("List")!;
+    var routeValues = Model.RouteValues();
+
+    Func<string, string, string, SortHeaderViewModel> header = (label, key, align) => new SortHeaderViewModel
+    {
+        Label = label, Key = key, Align = align,
+        Url = listUrl, Target = "#aq-purchase-table",
+        CurrentSort = Model.Query.Sort, CurrentDesc = Model.Query.Desc,
+        RouteValues = routeValues,
+    };
+}
+<div id="aq-purchase-table"
+     hx-get="@listUrl?@string.Join("&", routeValues.Where(v => v.Value != null).Select(v => $"{v.Key}={v.Value}"))"
+     hx-trigger="aquatrack:refresh from:body"
+     hx-swap="outerHTML">
+
+    @if (Model.Page.TotalCount == 0)
+    {
+        <partial name="_EmptyState" model="@(string.IsNullOrWhiteSpace(Model.Query.Search) && !Model.OnlyWithDues
+            ? new EmptyStateViewModel {
+                Icon = "bi-cart3",
+                Title = "No purchases yet",
+                Message = "Record a purchase to raise stock, post the cost and track what you owe suppliers.",
+                ActionLabel = "New purchase",
+                ActionUrl = Url.Action("Form") }
+            : EmptyStateViewModel.NoMatches(Model.Query.Search))" />
+    }
+    else
+    {
+        <div class="aq-table-wrap">
+            <table class="table aq-table">
+                <thead>
+                    <tr>
+                        <partial name="_SortHeader" model="@header("Date", "date", "start")" />
+                        <partial name="_SortHeader" model="@header("Purchase no.", "number", "start")" />
+                        <partial name="_SortHeader" model="@header("Supplier", "supplier", "start")" />
+                        <th>Invoice</th>
+                        <th class="text-end">Lines</th>
+                        <partial name="_SortHeader" model="@header("Total", "total", "end")" />
+                        <th class="text-end">Paid</th>
+                        <th class="text-end">Due</th>
+                        <th class="aq-row-actions"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var purchase in Model.Page.Items)
+                    {
+                        <tr>
+                            <td>@purchase.PurchaseDate.ToString("dd MMM yyyy")</td>
+                            <td>
+                                <a class="fw-semibold" asp-action="Details" asp-route-id="@purchase.Id">
+                                    @purchase.PurchaseNo
+                                </a>
+                            </td>
+                            <td>@(purchase.Supplier?.Name ?? "-")</td>
+                            <td class="text-muted-2">@(purchase.InvoiceNo ?? "-")</td>
+                            <td class="num">@purchase.Items.Count</td>
+                            <td class="num fw-semibold">@purchase.GrandTotal.ToString("N2")</td>
+                            <td class="num">@purchase.PaidAmount.ToString("N2")</td>
+                            <td class="num @(purchase.DueAmount > 0 ? "text-danger fw-semibold" : "")">
+                                @purchase.DueAmount.ToString("N2")
+                            </td>
+                            <td class="aq-row-actions">
+                                @if (purchase.DueAmount > 0)
+                                {
+                                    <button type="button" class="btn btn-icon" title="Pay supplier"
+                                            hx-get="@Url.Action("PaymentForm", new { id = purchase.Id })"
+                                            hx-target="#aq-modal-content">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </button>
+                                }
+                                <a class="btn btn-icon" asp-action="Details" asp-route-id="@purchase.Id" title="Open">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                </a>
+                                <button type="button" class="btn btn-icon danger" title="Delete"
+                                        hx-get="@Url.Action("ConfirmDelete", new { id = purchase.Id })"
+                                        hx-target="#aq-modal-content">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5">Page total</td>
+                        <td class="num">@Model.PageTotal.ToString("N2")</td>
+                        <td class="num">@Model.PagePaid.ToString("N2")</td>
+                        <td class="num">@Model.PageDue.ToString("N2")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <partial name="_Pager" model="@PagerViewModel.From(Model.Page, listUrl, "#aq-purchase-table", routeValues)" />
+    }
+</div>
